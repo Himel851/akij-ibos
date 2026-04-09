@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
       <div className="text-center">
         <h1 className="text-3xl font-semibold tracking-tight">
           Online Assessment Platform
@@ -31,6 +31,6 @@ export default function HomePage() {
           Register
         </Link>
       </p>
-    </main>
+    </div>
   );
 }
