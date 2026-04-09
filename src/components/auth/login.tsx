@@ -59,7 +59,7 @@ export function Login({ subtitle, panel }: LoginProps) {
   return (
     <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-8 shadow-sm">
       <h1 className="text-center text-2xl font-semibold tracking-tight text-zinc-900">
-        Sign In
+        Log In
       </h1>
       {subtitle ? (
         <p className="mt-1 text-center text-sm text-zinc-500">{subtitle}</p>
@@ -79,7 +79,7 @@ export function Login({ subtitle, panel }: LoginProps) {
             autoComplete="email"
             placeholder="Your primary email address"
             disabled={pending}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-violet-600/20 focus:border-violet-600 focus:ring-2 disabled:opacity-60"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
         </div>
         <div className="space-y-2">
@@ -96,7 +96,7 @@ export function Login({ subtitle, panel }: LoginProps) {
             autoComplete="current-password"
             placeholder="Enter your password"
             disabled={pending}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-violet-600/20 focus:border-violet-600 focus:ring-2 disabled:opacity-60"
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
         </div>
         <div className="flex justify-end">
@@ -110,7 +110,7 @@ export function Login({ subtitle, panel }: LoginProps) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-violet-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-700 disabled:opacity-60"
+          className="w-full cursor-pointer rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-60"
         >
           {pending ? "Please wait…" : "Submit"}
         </button>
