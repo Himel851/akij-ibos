@@ -11,6 +11,6 @@ export default function EmployerLayout({
         </span>
       </header>
       <div className="flex-1">{children}</div>
-    </div>
+    </div> 
   );
 }
