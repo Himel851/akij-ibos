@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 function PhoneIcon({ className }: { className?: string }) {
   return (
@@ -47,13 +48,20 @@ export function Footer() {
       <div className="mx-auto flex max-w-container flex-col gap-6 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm text-zinc-400">Powered by</span>
-          <Image
-            src="/images/logo.png"
-            alt=""
-            width={140}
-            height={36}
-            className="h-7 w-auto object-contain object-left brightness-0 invert"
-          />
+          <Link
+            href="/"
+            className="flex items-center"
+            aria-label="Akij Resource home"
+          >
+            <Image
+              src="/images/logo.png"
+              alt="Akij Resource"
+              width={116}
+              height={32}
+              className="w-auto h-8 object-contain"
+              priority
+            />
+          </Link>
         </div>
         <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:gap-8">
           <div className="flex flex-wrap items-center gap-2">

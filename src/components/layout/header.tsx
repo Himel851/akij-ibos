@@ -14,9 +14,9 @@ export function Header() {
             <Image
               src="/images/logo.png"
               alt="Akij Resource"
-              width={160}
-              height={40}
-              className="h-9 w-auto max-w-38 object-contain object-left sm:max-w-none"
+              width={116}
+              height={32}
+              className="w-auto h-8 object-contain"
               priority
             />
           </Link>

@@ -2,7 +2,7 @@ type PageProps = {
   params: Promise<{ attemptId: string }>;
 };
 
-export default async function CandidateExamPage({ params }: PageProps) {
+export default async function UserExamPage({ params }: PageProps) {
   const { attemptId } = await params;
   return (
     <div className="p-6">

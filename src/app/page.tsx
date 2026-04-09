@@ -13,21 +13,21 @@ export default function HomePage() {
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <Link
-          href="/employer/login"
+          href="/admin/login"
           className="rounded-lg border border-zinc-300 bg-white px-6 py-3 text-center font-medium text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
         >
-          Employer login
+          Admin login
         </Link>
         <Link
-          href="/candidate/login"
+          href="/user/login"
           className="rounded-lg border border-zinc-300 bg-white px-6 py-3 text-center font-medium text-zinc-900 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
         >
-          Candidate login
+          User login
         </Link>
       </div>
       <p className="text-sm text-zinc-500">
-        New candidate?{" "}
-        <Link href="/candidate/register" className="font-medium underline">
+        New user?{" "}
+        <Link href="/user/register" className="font-medium underline">
           Register
         </Link>
       </p>

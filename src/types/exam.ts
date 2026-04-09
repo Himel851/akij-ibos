@@ -3,7 +3,7 @@ import type { Question } from "./question";
 export type Exam = {
   id: string;
   title: string;
-  totalCandidates: number;
+  totalUsers: number;
   totalSlots: number;
   questionSetsCount: number;
   questionType?: string;

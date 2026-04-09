@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { ToastProvider } from "@/components/providers/toast-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Online Assessment Platform",
-  description: "Employer and candidate panels for online assessments",
+  description: "Admin and user panels for online assessments",
 };
 
 export default function RootLayout({
@@ -33,6 +34,7 @@ export default function RootLayout({
         <Header />
         <main className="flex flex-1 flex-col">{children}</main>
         <Footer />
+        <ToastProvider />
       </body>
     </html>
   );
