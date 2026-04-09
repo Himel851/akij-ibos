@@ -1,39 +1,16 @@
 import { TestCard } from "@/components/admin/test-card";
+import { fetchExamSummariesFromApi } from "@/lib/data/exams";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 
-const MOCK_TESTS = [
-  {
-    examId: "1",
-    title: "Psychometric Test for Management Trainee Officer",
-    candidatesLabel: "10,000",
-    questionSetLabel: "3",
-    examSlotsLabel: "3",
-  },
-  {
-    examId: "2",
-    title: "Psychometric Test for Management Trainee Officer",
-    candidatesLabel: "Not Set",
-    questionSetLabel: "Not Set",
-    examSlotsLabel: "Not Set",
-  },
-  {
-    examId: "3",
-    title: "Psychometric Test for Management Trainee Officer",
-    candidatesLabel: "10,000",
-    questionSetLabel: "3",
-    examSlotsLabel: "3",
-  },
-  {
-    examId: "4",
-    title: "Psychometric Test for Management Trainee Officer",
-    candidatesLabel: "Not Set",
-    questionSetLabel: "3",
-    examSlotsLabel: "Not Set",
-  },
-] as const;
+export default async function AdminDashboardPage() {
+  let tests: Awaited<ReturnType<typeof fetchExamSummariesFromApi>> = [];
+  try {
+    tests = await fetchExamSummariesFromApi();
+  } catch {
+    tests = [];
+  }
 
-export default function AdminDashboardPage() {
   return (
     <div className="mx-auto w-full max-w-container flex-1 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -64,10 +41,10 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {MOCK_TESTS.map((t) => (
+        {tests.map((t) => (
           <TestCard
-            key={t.examId}
-            examId={t.examId}
+            key={t.id}
+            examId={t.id}
             title={t.title}
             candidatesLabel={t.candidatesLabel}
             questionSetLabel={t.questionSetLabel}
