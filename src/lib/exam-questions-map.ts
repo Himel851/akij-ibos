@@ -35,6 +35,27 @@ export function examQuestionToDraft(q: ExamQuestion): DraftQuestionPayload {
   };
 }
 
+/** Update existing row — keeps `id` for PATCH payload. */
+export function examQuestionFromPayload(
+  payload: DraftQuestionPayload,
+  id: string,
+): ExamQuestion {
+  const options = payload.options
+    .map((o) => ({
+      id: o.id,
+      text: o.text.trim(),
+      isCorrect: o.isCorrect,
+    }))
+    .filter((o) => o.text !== "");
+  return {
+    id,
+    score: payload.score,
+    type: payload.type,
+    prompt: payload.prompt.trim(),
+    options,
+  };
+}
+
 function isQuestionType(v: unknown): v is QuestionType {
   return v === "checkbox" || v === "radio" || v === "text";
 }

@@ -16,6 +16,9 @@ type Props = {
   open: boolean;
   questionNumber: number;
   resetKey: number;
+  /** When set, form opens with this data (edit mode). */
+  initialDraft?: DraftQuestionPayload | null;
+  isEditing?: boolean;
   onClose: () => void;
   onSave: (payload: DraftQuestionPayload) => void;
   onSaveAndAddMore: (payload: DraftQuestionPayload) => void;
@@ -32,8 +35,8 @@ function letterAt(index: number) {
 }
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
+  { value: "radio", label: "MCQ" },
   { value: "checkbox", label: "Checkbox" },
-  { value: "radio", label: "Radio" },
   { value: "text", label: "Text" },
 ];
 
@@ -100,10 +103,56 @@ function OptionRow({
   );
 }
 
+function TextAnswerRow({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-300 bg-white text-sm font-semibold text-zinc-700">
+          A
+        </span>
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded p-1.5 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 cursor-pointer"
+          aria-label="Clear answer"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+      <RichTextArea
+        value={value}
+        onChange={onChange}
+        placeholder="Expected answer (optional)…"
+        rows={5}
+      />
+    </div>
+  );
+}
+
+function draftFingerprint(d: DraftQuestionPayload | null | undefined): string {
+  if (!d) return "";
+  return JSON.stringify({
+    p: d.prompt,
+    s: d.score,
+    t: d.type,
+    o: d.options.map((x) => `${x.id}:${x.text}:${x.isCorrect}`),
+  });
+}
+
 export function QuestionModal({
   open,
   questionNumber,
   resetKey,
+  initialDraft = null,
+  isEditing = false,
   onClose,
   onSave,
   onSaveAndAddMore,
@@ -111,7 +160,7 @@ export function QuestionModal({
   const titleId = useId();
   const radioGroupName = useId();
   const [score, setScore] = useState(1);
-  const [type, setType] = useState<QuestionType>("checkbox");
+  const [type, setType] = useState<QuestionType>("radio");
   const [prompt, setPrompt] = useState("");
   const [options, setOptions] = useState<DraftOption[]>(() => [
     { id: nextOptionId(), text: "", isCorrect: false },
@@ -121,7 +170,7 @@ export function QuestionModal({
 
   const reset = useCallback(() => {
     setScore(1);
-    setType("checkbox");
+    setType("radio");
     setPrompt("");
     setOptions([
       { id: nextOptionId(), text: "", isCorrect: false },
@@ -130,12 +179,38 @@ export function QuestionModal({
     ]);
   }, []);
 
+  const initialKey = draftFingerprint(initialDraft);
+
   useEffect(() => {
     if (!open) return;
     queueMicrotask(() => {
-      reset();
+      if (initialDraft && initialKey) {
+        setScore(initialDraft.score);
+        setType(initialDraft.type);
+        setPrompt(initialDraft.prompt);
+        const opts = initialDraft.options;
+        if (initialDraft.type === "text") {
+          const o0 = opts[0];
+          setOptions([
+            o0
+              ? { ...o0, isCorrect: true }
+              : { id: nextOptionId(), text: "", isCorrect: true },
+          ]);
+        } else {
+          setOptions(
+            opts.length > 0
+              ? opts.map((o) => ({ ...o }))
+              : [
+                  { id: nextOptionId(), text: "", isCorrect: false },
+                  { id: nextOptionId(), text: "", isCorrect: false },
+                ],
+          );
+        }
+      } else {
+        reset();
+      }
     });
-  }, [open, resetKey, reset]);
+  }, [open, resetKey, initialKey, initialDraft, reset]);
 
   useEffect(() => {
     if (!open) return;
@@ -147,6 +222,26 @@ export function QuestionModal({
   }, [open]);
 
   function buildPayload(): DraftQuestionPayload {
+    if (type === "text") {
+      const row = options[0];
+      const text = (row?.text ?? "").trim();
+      const opts =
+        text === ""
+          ? []
+          : [
+              {
+                id: row?.id ?? nextOptionId(),
+                text,
+                isCorrect: true,
+              },
+            ];
+      return {
+        score,
+        type: "text",
+        prompt: prompt.trim(),
+        options: opts,
+      };
+    }
     const nonEmpty = options
       .map((o) => ({ ...o, text: o.text.trim() }))
       .filter((o) => o.text !== "");
@@ -158,12 +253,43 @@ export function QuestionModal({
     };
   }
 
+  function handleTypeChange(next: QuestionType) {
+    if (next === type) return;
+    if (next === "text") {
+      setType("text");
+      setOptions((prev) => {
+        const first = prev[0] ?? {
+          id: nextOptionId(),
+          text: "",
+          isCorrect: false,
+        };
+        return [{ ...first, isCorrect: true }];
+      });
+      return;
+    }
+    setType(next);
+    setOptions((prev) => {
+      const carry = prev[0]?.text ?? "";
+      const firstCorrect = next === "radio" && carry.trim() !== "";
+      return [
+        {
+          id: nextOptionId(),
+          text: carry,
+          isCorrect: firstCorrect,
+        },
+        { id: nextOptionId(), text: "", isCorrect: false },
+        { id: nextOptionId(), text: "", isCorrect: false },
+      ];
+    });
+  }
+
   function validateForSave(): boolean {
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt) {
       toast.error("Please enter the question");
       return false;
     }
+    if (type === "text") return true;
     const nonEmptyCount = options.filter((o) => o.text.trim() !== "").length;
     if (nonEmptyCount < 2) {
       toast.error("Add at least 2 options with text");
@@ -230,7 +356,7 @@ export function QuestionModal({
               {questionNumber}
             </span>
             <h2 id={titleId} className="text-base font-semibold text-zinc-900">
-              Question {questionNumber}
+              {isEditing ? "Edit question" : `Question ${questionNumber}`}
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -246,7 +372,7 @@ export function QuestionModal({
             </label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as QuestionType)}
+              onChange={(e) => handleTypeChange(e.target.value as QuestionType)}
               className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
             >
               {QUESTION_TYPES.map((t) => (
@@ -274,46 +400,77 @@ export function QuestionModal({
             rows={5}
           />
 
-          <div className="mt-6 space-y-4">
-            {options.map((opt, idx) => (
-              <OptionRow
-                key={opt.id}
-                letter={letterAt(idx)}
-                opt={opt}
-                type={type}
-                radioName={radioGroupName}
-                onText={(text) => updateOptionText(opt.id, text)}
-                onCorrect={(checked) => handleCorrectChange(opt.id, checked)}
-                onRemove={() => removeOption(opt.id)}
+          {type === "text" ? (
+            <div className="mt-6">
+              <TextAnswerRow
+                value={options[0]?.text ?? ""}
+                onChange={(text) => {
+                  const row = options[0];
+                  if (!row) {
+                    setOptions([{ id: nextOptionId(), text, isCorrect: true }]);
+                    return;
+                  }
+                  updateOptionText(row.id, text);
+                }}
+                onClear={() => {
+                  const row = options[0];
+                  if (row) updateOptionText(row.id, "");
+                }}
               />
-            ))}
-          </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-6 space-y-4">
+                {options.map((opt, idx) => (
+                  <OptionRow
+                    key={opt.id}
+                    letter={letterAt(idx)}
+                    opt={opt}
+                    type={type}
+                    radioName={radioGroupName}
+                    onText={(text) => updateOptionText(opt.id, text)}
+                    onCorrect={(checked) => handleCorrectChange(opt.id, checked)}
+                    onRemove={() => removeOption(opt.id)}
+                  />
+                ))}
+              </div>
 
-          <button
-            type="button"
-            onClick={addOption}
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-hover cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Another options
-          </button>
+              <button
+                type="button"
+                onClick={addOption}
+                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-hover cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                Another options
+              </button>
+            </>
+          )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-zinc-200 px-5 py-4">
+        <div className="flex flex-col-reverse justify-end gap-3 border-t border-zinc-200 px-5 py-4 sm:flex-row">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 cursor-pointer"
+          >
+            Cancel
+          </button>
           <button
             type="button"
             onClick={handleSaveClick}
             className="rounded-lg border border-primary bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 cursor-pointer"
           >
-            Save
+            {isEditing ? "Save changes" : "Save"}
           </button>
-          <button
-            type="button"
-            onClick={handleSaveAndAddMoreClick}
-            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover cursor-pointer"
-          >
-            Save & Add More
-          </button>
+          {!isEditing ? (
+            <button
+              type="button"
+              onClick={handleSaveAndAddMoreClick}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover cursor-pointer"
+            >
+              Save & Add More
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

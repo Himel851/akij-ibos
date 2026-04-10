@@ -5,11 +5,16 @@ import {
   QuestionModal,
   type DraftQuestionPayload,
 } from "./question-modal";
-import { draftToExamQuestion, normalizeExamQuestions } from "@/lib/exam-questions-map";
+import { QuestionPreviewCard } from "./question-preview-card";
+import {
+  draftToExamQuestion,
+  examQuestionFromPayload,
+  examQuestionToDraft,
+  normalizeExamQuestions,
+} from "@/lib/exam-questions-map";
 import { ManageTestHeader } from "@/components/admin/manage-test/manage-test-header";
 import { getDraftExamId } from "@/lib/manage-test-storage";
 import type { ExamQuestion } from "@/types/question";
-import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -23,6 +28,16 @@ export function QuestionsStep() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ExamQuestion | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const editingQuestion =
+    editingId !== null ? questions.find((q) => q.id === editingId) : undefined;
+  const modalInitialDraft =
+    editingQuestion !== undefined ? examQuestionToDraft(editingQuestion) : null;
+  const modalQuestionNumber =
+    editingId !== null
+      ? Math.max(1, questions.findIndex((q) => q.id === editingId) + 1)
+      : questions.length + 1;
 
   useEffect(() => {
     const id = getDraftExamId();
@@ -51,8 +66,6 @@ export function QuestionsStep() {
     };
   }, [router]);
 
-  const questionNumber = questions.length + 1;
-
   async function persistQuestions(next: ExamQuestion[]) {
     const id = getDraftExamId();
     if (!id) throw new Error("Missing exam");
@@ -73,11 +86,17 @@ export function QuestionsStep() {
   }
 
   async function handleSave(payload: DraftQuestionPayload) {
-    const next = [...questions, draftToExamQuestion(payload)];
+    const next =
+      editingId !== null
+        ? questions.map((q) =>
+            q.id === editingId ? examQuestionFromPayload(payload, editingId) : q,
+          )
+        : [...questions, draftToExamQuestion(payload)];
     try {
       await persistQuestions(next);
       setQuestions(next);
       setModalOpen(false);
+      setEditingId(null);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Save failed");
     }
@@ -126,44 +145,30 @@ export function QuestionsStep() {
         <button
           type="button"
           disabled={saving}
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            setEditingId(null);
+            setModalOpen(true);
+          }}
           className="w-full rounded-lg bg-primary px-5 py-4 text-center text-sm font-bold text-primary-foreground shadow-sm transition hover:bg-primary-hover disabled:opacity-60 cursor-pointer"
         >
           {saving ? "Saving…" : "Add Question"}
         </button>
 
         {questions.length > 0 ? (
-          <ul className="mt-6 space-y-3 border-t border-zinc-200 pt-6">
-            {questions.map((q, i) => {
-              const preview = (q.prompt || "").slice(0, 120);
-              const hasMore = (q.prompt || "").length > 120;
-              return (
-                <li
-                  key={q.id}
-                  className="flex flex-row items-start justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-zinc-900">
-                      Q{i + 1}. {preview}
-                      {hasMore ? "…" : ""}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Score: {q.score} · Type: {q.type} · Options:{" "}
-                      {q.options.length}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={saving || deletePending}
-                    onClick={() => setDeleteTarget(q)}
-                    className="shrink-0 rounded-lg p-2 text-zinc-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 cursor-pointer"
-                    aria-label={`Delete question ${i + 1}`}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden />
-                  </button>
-                </li>
-              );
-            })}
+          <ul className="mt-6 space-y-4 border-t border-zinc-200 pt-6">
+            {questions.map((q, i) => (
+              <QuestionPreviewCard
+                key={q.id}
+                question={q}
+                index={i}
+                disabled={saving || deletePending}
+                onEdit={() => {
+                  setEditingId(q.id);
+                  setModalOpen(true);
+                }}
+                onRemove={() => setDeleteTarget(q)}
+              />
+            ))}
           </ul>
         ) : null}
       </div>
@@ -181,9 +186,14 @@ export function QuestionsStep() {
 
       <QuestionModal
         open={modalOpen}
-        questionNumber={questionNumber}
+        questionNumber={modalQuestionNumber}
         resetKey={draftKey}
-        onClose={() => setModalOpen(false)}
+        initialDraft={modalInitialDraft}
+        isEditing={editingId !== null}
+        onClose={() => {
+          setEditingId(null);
+          setModalOpen(false);
+        }}
         onSave={(p) => void handleSave(p)}
         onSaveAndAddMore={(p) => void handleSaveAndAddMore(p)}
       />
