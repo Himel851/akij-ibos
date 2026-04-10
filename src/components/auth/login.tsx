@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -99,10 +100,23 @@ export function Login({ subtitle, panel }: LoginProps) {
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
         </div>
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {panel === "user" ? (
+            <p className="text-sm text-zinc-600">
+              New user?{" "}
+              <Link
+                href="/user/register"
+                className="font-medium text-zinc-900 underline-offset-2 hover:underline"
+              >
+                Register
+              </Link>
+            </p>
+          ) : (
+            <span className="hidden sm:block" aria-hidden />
+          )}
           <a
             href="#"
-            className="text-sm text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
+            className="text-right text-sm text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline sm:text-left"
           >
             Forget Password?
           </a>
