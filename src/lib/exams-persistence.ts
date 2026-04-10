@@ -1,14 +1,16 @@
 import { normalizeExamQuestions } from "@/lib/exam-questions-map";
+import { candidateNegativeMarkingDisplayLabel } from "@/lib/exam-display";
 import {
   createDraftExam as createDraftExamMock,
   createExam as createExamMock,
   deleteExam as deleteExamMock,
   getExamDetail as getExamDetailMock,
   listExamSummaries as listExamSummariesMock,
+  listPublishedExamsForCandidateMock,
   updateExam as updateExamMock,
 } from "@/lib/mock/exams-repository";
 import { createSupabaseServiceClient, hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
-import type { Exam, ExamSummary } from "@/types/exam";
+import type { Exam, ExamSummary, UserExamListItem } from "@/types/exam";
 import type { ExamQuestion } from "@/types/question";
 
 type ExamRow = {
@@ -23,6 +25,7 @@ type ExamRow = {
   duration_minutes: number;
   questions: unknown;
   status: string;
+  negative_mark_per_wrong?: number | null;
 };
 
 function rowToStoredShape(row: ExamRow): Exam {
@@ -71,6 +74,33 @@ export async function listExamSummariesPersisted(): Promise<ExamSummary[]> {
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data as ExamRow[]).filter(shouldShowExamInAdminList).map(rowToSummary);
+}
+
+function mapRowsToUserExamList(rows: ExamRow[]): UserExamListItem[] {
+  return rows
+    .filter((row) => (row.title ?? "").trim() !== "")
+    .map((row) => ({
+      id: row.id,
+      title: (row.title ?? "").trim(),
+      durationMinutes: row.duration_minutes ?? 0,
+      questionCount: normalizeExamQuestions(row.questions).length,
+      negativeMarkingLabel: candidateNegativeMarkingDisplayLabel(),
+    }));
+}
+
+/** Candidate dashboard: exams visible to takers (draft or published, with title). */
+export async function listPublishedExamsForCandidate(): Promise<UserExamListItem[]> {
+  if (!hasSupabaseServiceConfig()) {
+    return listPublishedExamsForCandidateMock();
+  }
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("exams")
+    .select("id, title, duration_minutes, questions, status")
+    .in("status", ["published", "draft"])
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return mapRowsToUserExamList((data ?? []) as ExamRow[]);
 }
 
 export async function getExamDetailPersisted(id: string): Promise<Exam | null> {

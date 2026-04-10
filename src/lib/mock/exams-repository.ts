@@ -1,4 +1,6 @@
-import type { Exam, ExamSummary } from "@/types/exam";
+import { candidateNegativeMarkingDisplayLabel } from "@/lib/exam-display";
+import type { Exam, ExamSummary, UserExamListItem } from "@/types/exam";
+import type { ExamQuestion } from "@/types/question";
 
 /**
  * Internal shape allowing "Not Set" for list display — in-memory mock DB.
@@ -15,7 +17,21 @@ export type StoredExam = {
   endTime: string;
   durationMinutes: number;
   questions: Exam["questions"];
+  status?: "draft" | "published";
 };
+
+function demoQuestions(count: number): ExamQuestion[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `demo-q-${i}`,
+    score: 1,
+    type: "radio",
+    prompt: `Question ${i + 1}`,
+    options: [
+      { id: `demo-${i}-a`, text: "Option A", isCorrect: true },
+      { id: `demo-${i}-b`, text: "Option B", isCorrect: false },
+    ],
+  }));
+}
 
 function fmtCount(n: number | null): string {
   if (n === null) return "Not Set";
@@ -57,8 +73,9 @@ const initial: StoredExam[] = [
     questionType: "MCQ",
     startTime: "2026-04-01T09:00:00",
     endTime: "2026-04-30T18:00:00",
-    durationMinutes: 60,
-    questions: [],
+    durationMinutes: 30,
+    questions: demoQuestions(20),
+    status: "published",
   },
   {
     id: "2",
@@ -70,6 +87,7 @@ const initial: StoredExam[] = [
     endTime: "",
     durationMinutes: 0,
     questions: [],
+    status: "published",
   },
   {
     id: "3",
@@ -81,7 +99,8 @@ const initial: StoredExam[] = [
     startTime: "2026-05-01T09:00:00",
     endTime: "2026-05-31T18:00:00",
     durationMinutes: 60,
-    questions: [],
+    questions: demoQuestions(15),
+    status: "published",
   },
   {
     id: "4",
@@ -93,7 +112,8 @@ const initial: StoredExam[] = [
     startTime: "2026-06-01T09:00:00",
     endTime: "2026-06-30T18:00:00",
     durationMinutes: 45,
-    questions: [],
+    questions: demoQuestions(12),
+    status: "published",
   },
 ];
 
@@ -123,6 +143,7 @@ export function createDraftExam(): ExamSummary {
     endTime: "",
     durationMinutes: 0,
     questions: [],
+    status: "draft",
   });
 }
 
@@ -148,6 +169,7 @@ export function createExam(
     endTime: payload.endTime ?? "",
     durationMinutes: payload.durationMinutes ?? 0,
     questions: payload.questions ?? [],
+    status: payload.status ?? "published",
   };
   exams = [...exams, row];
   return toSummary(row);
@@ -171,4 +193,20 @@ export function deleteExam(id: string): boolean {
   const before = exams.length;
   exams = exams.filter((e) => e.id !== id);
   return exams.length < before;
+}
+
+export function listPublishedExamsForCandidateMock(): UserExamListItem[] {
+  return exams
+    .filter((e) => {
+      if (e.title.trim() === "") return false;
+      const st = e.status ?? "published";
+      return st === "published" || st === "draft";
+    })
+    .map((e) => ({
+      id: e.id,
+      title: e.title.trim() || "Untitled",
+      durationMinutes: e.durationMinutes,
+      questionCount: e.questions.length,
+      negativeMarkingLabel: candidateNegativeMarkingDisplayLabel(),
+    }));
 }

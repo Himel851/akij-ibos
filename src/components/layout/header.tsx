@@ -11,6 +11,7 @@ type MeResponse = {
   user?: {
     name?: string;
     email?: string;
+    refId?: string;
   };
 };
 
@@ -31,6 +32,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [userRefId, setUserRefId] = useState("");
 
   const isAdminDashboard =
     pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
@@ -52,6 +54,7 @@ export function Header() {
         if (data.ok && data.user) {
           setUserName(data.user.name ?? "");
           setUserEmail(data.user.email ?? "");
+          setUserRefId(data.user.refId ?? "");
         }
       } catch {
         // Ignore and keep fallback account text.
@@ -87,10 +90,10 @@ export function Header() {
   return (
     <header className="shrink-0 border-b border-zinc-200 bg-white">
       <div className="mx-auto flex h-16 max-w-container items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
-        <div className="flex w-32 shrink-0 items-center sm:w-40">
+        <div className="flex min-w-0 shrink-0 items-center gap-4 sm:gap-6">
           <Link
             href={logoHref}
-            className="flex items-center"
+            className="flex shrink-0 items-center"
             aria-label="Akij Resource home"
           >
             <Image
@@ -98,10 +101,18 @@ export function Header() {
               alt="Akij Resource"
               width={116}
               height={32}
-              className="w-auto h-8 object-contain"
+              className="h-8 w-auto object-contain"
               priority
             />
           </Link>
+          {isUserDashboard ? (
+            <Link
+              href="/user"
+              className="shrink-0 text-sm font-semibold text-primary hover:text-primary-hover"
+            >
+              Dashboard
+            </Link>
+          ) : null}
         </div>
         <p className="flex-1 text-center text-base font-medium text-zinc-700 sm:text-lg">
           Akij Resource
@@ -111,6 +122,9 @@ export function Header() {
             <div className="hidden text-right sm:block">
               <p className="text-sm font-semibold text-zinc-900">{displayName}</p>
               <p className="text-xs text-zinc-500">{displayEmail}</p>
+              {isUserDashboard && userRefId ? (
+                <p className="text-xs text-zinc-400">Ref. ID: {userRefId}</p>
+              ) : null}
             </div>
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-muted text-sm font-semibold text-primary-muted-foreground"

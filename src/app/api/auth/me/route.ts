@@ -20,6 +20,7 @@ export async function GET() {
       user: {
         name: metadata.name ?? "",
         email: user.email ?? "",
+        refId: user.id.replace(/-/g, "").slice(0, 10).toUpperCase(),
       },
     });
   } catch {

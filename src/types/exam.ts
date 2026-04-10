@@ -22,3 +22,12 @@ export type ExamSummary = {
   questionSetLabel: string;
   examSlotsLabel: string;
 };
+
+/** Candidate dashboard — draft or published exams with a title */
+export type UserExamListItem = {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  questionCount: number;
+  negativeMarkingLabel: string;
+};
