@@ -22,6 +22,7 @@ type CreateBody = {
   startTime?: string;
   endTime?: string;
   durationMinutes?: number;
+  status?: "draft" | "published";
 };
 
 export async function POST(request: Request) {
@@ -41,6 +42,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
 
+  const st = body.status;
+  const status =
+    st === "draft" || st === "published" ? st : ("published" as const);
+
   try {
     const summary = await createExamPersisted({
       title,
@@ -51,6 +56,7 @@ export async function POST(request: Request) {
       startTime: body.startTime ?? "",
       endTime: body.endTime ?? "",
       durationMinutes: body.durationMinutes ?? 0,
+      status,
     });
     return NextResponse.json({ data: summary }, { status: 201 });
   } catch (e) {

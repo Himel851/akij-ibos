@@ -100,7 +100,7 @@ const initial: StoredExam[] = [
 let exams: StoredExam[] = initial.map((e) => ({ ...e, questions: [...e.questions] }));
 
 export function listExamSummaries(): ExamSummary[] {
-  return exams.map(toSummary);
+  return exams.filter((e) => e.title.trim() !== "").map(toSummary);
 }
 
 export function getExamById(id: string): StoredExam | undefined {

@@ -56,6 +56,10 @@ function rowToSummary(row: ExamRow): ExamSummary {
   };
 }
 
+function shouldShowExamInAdminList(row: ExamRow): boolean {
+  return (row.title ?? "").trim() !== "";
+}
+
 export async function listExamSummariesPersisted(): Promise<ExamSummary[]> {
   if (!hasSupabaseServiceConfig()) {
     return listExamSummariesMock();
@@ -66,7 +70,7 @@ export async function listExamSummariesPersisted(): Promise<ExamSummary[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as ExamRow[]).map(rowToSummary);
+  return (data as ExamRow[]).filter(shouldShowExamInAdminList).map(rowToSummary);
 }
 
 export async function getExamDetailPersisted(id: string): Promise<Exam | null> {
@@ -110,9 +114,12 @@ type CreateExamBody = {
   startTime?: string;
   endTime?: string;
   durationMinutes?: number;
+  /** Wizard uses `draft`; dashboard “create” without wizard can use `published`. */
+  status?: "draft" | "published";
 };
 
 export async function createExamPersisted(body: CreateExamBody): Promise<ExamSummary> {
+  const status = body.status ?? "published";
   if (!hasSupabaseServiceConfig()) {
     return createExamMock({
       title: body.title,
@@ -139,7 +146,7 @@ export async function createExamPersisted(body: CreateExamBody): Promise<ExamSum
       end_time: body.endTime?.trim() ? body.endTime.trim() : null,
       duration_minutes: body.durationMinutes ?? 0,
       questions: [],
-      status: "published",
+      status,
     })
     .select("*")
     .single();

@@ -21,6 +21,17 @@ import type { Exam } from "@/types/exam";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
+const emptyBasicInfo: BasicInfo = {
+  title: "",
+  totalCandidates: "",
+  totalSlots: "",
+  totalQuestionSet: "",
+  questionType: "",
+  startTime: "",
+  endTime: "",
+  duration: "",
+};
+
 function SelectChevron({
   id,
   name,
@@ -106,6 +117,7 @@ function BasicInfoFormInner() {
   const [examId, setExamId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,41 +129,33 @@ function BasicInfoFormInner() {
         return;
       }
 
-      let id = getDraftExamId();
+      const id = getDraftExamId();
 
       try {
         if (!id) {
-          const draftRes = await fetch("/api/exams/draft", { method: "POST" });
-          if (!draftRes.ok) {
-            const j = (await draftRes.json().catch(() => ({}))) as { error?: string };
-            throw new Error(j.error ?? `Could not start draft (${draftRes.status})`);
-          }
-          const draftJson = (await draftRes.json()) as { data: { id: string } };
-          id = draftJson.data.id;
           if (cancelled) return;
-          setDraftExamId(id);
+          setExamId(null);
+          setForm({
+            initial: { ...emptyBasicInfo },
+            startLocal: "",
+            endLocal: "",
+          });
+          setReady(true);
+          return;
         }
 
         const examRes = await fetch(`/api/exams/${id}`);
         if (!examRes.ok) {
           if (examRes.status === 404) {
             clearDraftExamId();
-            const retry = await fetch("/api/exams/draft", { method: "POST" });
-            if (!retry.ok) throw new Error("Could not recover draft");
-            const j = (await retry.json()) as { data: { id: string } };
-            id = j.data.id;
-            setDraftExamId(id);
-            const again = await fetch(`/api/exams/${id}`);
-            if (!again.ok) throw new Error("Could not load new draft");
-            const examJson = (await again.json()) as { data: Exam };
-            const loaded = examToBasicInfo(examJson.data);
             if (cancelled) return;
-            setExamId(id);
+            setExamId(null);
             setForm({
-              initial: loaded,
-              startLocal: isoToDatetimeLocal(loaded.startTime),
-              endLocal: isoToDatetimeLocal(loaded.endTime),
+              initial: { ...emptyBasicInfo },
+              startLocal: "",
+              endLocal: "",
             });
+            setReady(true);
             return;
           }
           throw new Error(`Could not load exam (${examRes.status})`);
@@ -166,9 +170,11 @@ function BasicInfoFormInner() {
           startLocal: isoToDatetimeLocal(loaded.startTime),
           endLocal: isoToDatetimeLocal(loaded.endTime),
         });
+        setReady(true);
       } catch (e) {
         if (cancelled) return;
         setLoadError(e instanceof Error ? e.message : "Failed to load");
+        setReady(true);
       }
     }
 
@@ -186,7 +192,7 @@ function BasicInfoFormInner() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!form || !examId) return;
+    if (!form) return;
 
     if (form.startLocal && form.endLocal) {
       const a = new Date(form.startLocal).getTime();
@@ -211,6 +217,32 @@ function BasicInfoFormInner() {
 
     const patch = basicInfoToExamPatch(data);
     try {
+      if (!examId) {
+        const res = await fetch("/api/exams", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "draft",
+            title: patch.title,
+            totalUsers: patch.totalUsers,
+            totalSlots: patch.totalSlots,
+            questionSetsCount: patch.questionSetsCount,
+            questionType: patch.questionType,
+            startTime: patch.startTime,
+            endTime: patch.endTime,
+            durationMinutes: patch.durationMinutes,
+          }),
+        });
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? "Save failed");
+        }
+        const json = (await res.json()) as { data: { id: string } };
+        setDraftExamId(json.data.id);
+        router.push("/admin/tests/new/review");
+        return;
+      }
+
       const res = await fetch(`/api/exams/${examId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -243,7 +275,7 @@ function BasicInfoFormInner() {
     );
   }
 
-  if (!form || !examId) {
+  if (!ready || !form) {
     return (
       <div className="mx-auto max-w-container px-4 py-10 text-center text-sm text-zinc-500">
         Loading…
@@ -257,7 +289,7 @@ function BasicInfoFormInner() {
     <div className="mx-auto w-full max-w-container space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <ManageTestHeader variant="two-step" activeStep={1} />
 
-      <form key={examId} onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+      <form key={examId ?? "new"} onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-base font-bold text-zinc-900">Basic Information</h2>
           <div className="mt-6 space-y-5">
