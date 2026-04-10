@@ -53,13 +53,12 @@ export function computeExamScore(
       continue;
     }
 
-    if (!ans || ans.kind !== q.type) {
-      penaltyPoints += NEGATIVE_MARK_PER_WRONG;
-      wrongCount += 1;
-      continue;
-    }
-
     if (q.type === "radio") {
+      if (!ans || ans.kind !== "radio") {
+        penaltyPoints += NEGATIVE_MARK_PER_WRONG;
+        wrongCount += 1;
+        continue;
+      }
       const picked = ans.optionId;
       const correctArr = [...correctIds];
       const ok = correctArr.length === 1 && picked === correctArr[0];
@@ -74,7 +73,12 @@ export function computeExamScore(
     }
 
     if (q.type === "checkbox") {
-      const picked = new Set(ans.optionIds);
+      if (!ans || ans.kind !== "checkbox") {
+        penaltyPoints += NEGATIVE_MARK_PER_WRONG;
+        wrongCount += 1;
+        continue;
+      }
+      const picked = new Set<string>(ans.optionIds);
       if (setsEqual(picked, correctIds)) {
         earnedPoints += q.score || 0;
         correctCount += 1;

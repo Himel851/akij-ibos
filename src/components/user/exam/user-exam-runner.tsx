@@ -70,6 +70,7 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
   }, [phase]);
 
   const q = questions[index];
+  const currentAns = q ? answers[q.id] : undefined;
   const displayName = userName || "Participant";
 
   const finishExam = useCallback(() => {
@@ -236,7 +237,9 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
             <div className="mt-6 space-y-3">
               {q.type === "text" ? (
                 <RichTextArea
-                  value={answers[q.id]?.kind === "text" ? answers[q.id].text : ""}
+                  value={
+                    currentAns?.kind === "text" ? currentAns.text : ""
+                  }
                   onChange={setText}
                   placeholder="Type your answer here…"
                   rows={8}
@@ -247,12 +250,12 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                     key={opt.id}
                     className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
                       q.type === "radio" &&
-                      answers[q.id]?.kind === "radio" &&
-                      answers[q.id].optionId === opt.id
+                      currentAns?.kind === "radio" &&
+                      currentAns.optionId === opt.id
                         ? "border-primary bg-primary/5"
                         : q.type === "checkbox" &&
-                            answers[q.id]?.kind === "checkbox" &&
-                            answers[q.id].optionIds.includes(opt.id)
+                            currentAns?.kind === "checkbox" &&
+                            currentAns.optionIds.includes(opt.id)
                           ? "border-primary bg-primary/5"
                           : "border-zinc-200 bg-white hover:border-zinc-300"
                     }`}
@@ -262,8 +265,8 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                         type="radio"
                         name={`q-${q.id}`}
                         checked={Boolean(
-                          answers[q.id]?.kind === "radio" &&
-                            answers[q.id].optionId === opt.id,
+                          currentAns?.kind === "radio" &&
+                            currentAns.optionId === opt.id,
                         )}
                         onChange={() => setRadio(opt.id)}
                         className="h-4 w-4 border-zinc-400 text-primary focus:ring-primary"
@@ -272,8 +275,8 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                       <input
                         type="checkbox"
                         checked={Boolean(
-                          answers[q.id]?.kind === "checkbox" &&
-                            answers[q.id].optionIds.includes(opt.id),
+                          currentAns?.kind === "checkbox" &&
+                            currentAns.optionIds.includes(opt.id),
                         )}
                         onChange={() => toggleCheckbox(opt.id)}
                         className="h-4 w-4 rounded border-zinc-400 text-primary focus:ring-primary"
