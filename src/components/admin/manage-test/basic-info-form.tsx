@@ -7,24 +7,19 @@ import {
   isoToDatetimeLocal,
   minutesBetweenDatetimeLocal,
 } from "@/lib/datetime-local";
+import { basicInfoToExamPatch, examToBasicInfo } from "@/lib/manage-test-basic-info-map";
 import type { BasicInfo } from "@/lib/manage-test-storage";
-import { loadBasicInfo, saveBasicInfo } from "@/lib/manage-test-storage";
+import {
+  clearDraftExamId,
+  getDraftExamId,
+  setDraftExamId,
+} from "@/lib/manage-test-storage";
 import { CalendarClock, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { Exam } from "@/types/exam";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-
-const empty: BasicInfo = {
-  title: "",
-  totalCandidates: "",
-  totalSlots: "",
-  totalQuestionSet: "",
-  questionType: "",
-  startTime: "",
-  endTime: "",
-  duration: "",
-};
 
 function SelectChevron({
   id,
@@ -105,42 +100,93 @@ type FormState = {
   endLocal: string;
 };
 
-export function BasicInfoForm() {
+function BasicInfoFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [examId, setExamId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      const loaded = loadBasicInfo() ?? empty;
-      setForm({
-        initial: loaded,
-        startLocal: isoToDatetimeLocal(loaded.startTime),
-        endLocal: isoToDatetimeLocal(loaded.endTime),
-      });
-    });
-  }, []);
+    let cancelled = false;
+
+    async function init() {
+      if (searchParams.get("fresh") === "1") {
+        clearDraftExamId();
+        router.replace("/admin/tests/new");
+        return;
+      }
+
+      let id = getDraftExamId();
+
+      try {
+        if (!id) {
+          const draftRes = await fetch("/api/exams/draft", { method: "POST" });
+          if (!draftRes.ok) {
+            const j = (await draftRes.json().catch(() => ({}))) as { error?: string };
+            throw new Error(j.error ?? `Could not start draft (${draftRes.status})`);
+          }
+          const draftJson = (await draftRes.json()) as { data: { id: string } };
+          id = draftJson.data.id;
+          if (cancelled) return;
+          setDraftExamId(id);
+        }
+
+        const examRes = await fetch(`/api/exams/${id}`);
+        if (!examRes.ok) {
+          if (examRes.status === 404) {
+            clearDraftExamId();
+            const retry = await fetch("/api/exams/draft", { method: "POST" });
+            if (!retry.ok) throw new Error("Could not recover draft");
+            const j = (await retry.json()) as { data: { id: string } };
+            id = j.data.id;
+            setDraftExamId(id);
+            const again = await fetch(`/api/exams/${id}`);
+            if (!again.ok) throw new Error("Could not load new draft");
+            const examJson = (await again.json()) as { data: Exam };
+            const loaded = examToBasicInfo(examJson.data);
+            if (cancelled) return;
+            setExamId(id);
+            setForm({
+              initial: loaded,
+              startLocal: isoToDatetimeLocal(loaded.startTime),
+              endLocal: isoToDatetimeLocal(loaded.endTime),
+            });
+            return;
+          }
+          throw new Error(`Could not load exam (${examRes.status})`);
+        }
+
+        const examJson = (await examRes.json()) as { data: Exam };
+        const loaded = examToBasicInfo(examJson.data);
+        if (cancelled) return;
+        setExamId(id);
+        setForm({
+          initial: loaded,
+          startLocal: isoToDatetimeLocal(loaded.startTime),
+          endLocal: isoToDatetimeLocal(loaded.endTime),
+        });
+      } catch (e) {
+        if (cancelled) return;
+        setLoadError(e instanceof Error ? e.message : "Failed to load");
+      }
+    }
+
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
 
   const durationMinutes = useMemo(
     () =>
-      form
-        ? minutesBetweenDatetimeLocal(form.startLocal, form.endLocal)
-        : "",
+      form ? minutesBetweenDatetimeLocal(form.startLocal, form.endLocal) : "",
     [form],
   );
 
-  if (!form) {
-    return (
-      <div className="mx-auto max-w-container px-4 py-10 text-center text-sm text-zinc-500">
-        Loading…
-      </div>
-    );
-  }
-
-  const { initial } = form;
-
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!form) return;
+    if (!form || !examId) return;
 
     if (form.startLocal && form.endLocal) {
       const a = new Date(form.startLocal).getTime();
@@ -162,15 +208,56 @@ export function BasicInfoForm() {
       endTime: datetimeLocalToIso(form.endLocal),
       duration: durationMinutes,
     };
-    saveBasicInfo(data);
-    router.push("/admin/tests/new/review");
+
+    const patch = basicInfoToExamPatch(data);
+    try {
+      const res = await fetch(`/api/exams/${examId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: patch.title,
+          totalUsers: patch.totalUsers,
+          totalSlots: patch.totalSlots,
+          questionSetsCount: patch.questionSetsCount,
+          questionType: patch.questionType,
+          startTime: patch.startTime,
+          endTime: patch.endTime,
+          durationMinutes: patch.durationMinutes,
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? "Save failed");
+      }
+      router.push("/admin/tests/new/review");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Save failed");
+    }
   }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-container px-4 py-10 text-center text-sm text-red-600">
+        {loadError}
+      </div>
+    );
+  }
+
+  if (!form || !examId) {
+    return (
+      <div className="mx-auto max-w-container px-4 py-10 text-center text-sm text-zinc-500">
+        Loading…
+      </div>
+    );
+  }
+
+  const { initial } = form;
 
   return (
     <div className="mx-auto w-full max-w-container space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <ManageTestHeader variant="two-step" activeStep={1} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form key={examId} onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-base font-bold text-zinc-900">Basic Information</h2>
           <div className="mt-6 space-y-5">
@@ -296,5 +383,19 @@ export function BasicInfoForm() {
         </div>
       </form>
     </div>
+  );
+}
+
+export function BasicInfoForm() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-container px-4 py-10 text-center text-sm text-zinc-500">
+          Loading…
+        </div>
+      }
+    >
+      <BasicInfoFormInner />
+    </Suspense>
   );
 }

@@ -25,7 +25,7 @@ function fmtCount(n: number | null): string {
 function toSummary(e: StoredExam): ExamSummary {
   return {
     id: e.id,
-    title: e.title,
+    title: e.title.trim() ? e.title : "Untitled draft",
     candidatesLabel: fmtCount(e.totalUsers),
     questionSetLabel: fmtCount(e.questionSetsCount),
     examSlotsLabel: fmtCount(e.totalSlots),
@@ -110,6 +110,20 @@ export function getExamById(id: string): StoredExam | undefined {
 export function getExamDetail(id: string): Exam | null {
   const e = getExamById(id);
   return e ? toExamDetail(e) : null;
+}
+
+/** Empty wizard row — local mock when Supabase service role is not set. */
+export function createDraftExam(): ExamSummary {
+  return createExam({
+    title: "",
+    totalUsers: null,
+    totalSlots: null,
+    questionSetsCount: null,
+    startTime: "",
+    endTime: "",
+    durationMinutes: 0,
+    questions: [],
+  });
 }
 
 export function createExam(

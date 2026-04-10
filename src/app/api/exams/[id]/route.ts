@@ -1,8 +1,5 @@
-import {
-  deleteExam,
-  getExamDetail,
-  updateExam,
-} from "@/lib/mock/exams-repository";
+import { deleteExamPersisted, getExamDetailPersisted, updateExamPersisted } from "@/lib/exams-persistence";
+import { isAdminSessionRequest } from "@/lib/require-admin-api";
 import type { Exam } from "@/types/exam";
 import { NextResponse } from "next/server";
 
@@ -10,20 +7,31 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
-  const { id } = await context.params;
-  const data: Exam | null = getExamDetail(id);
-  if (!data) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+export async function GET(request: Request, context: RouteContext) {
+  if (!isAdminSessionRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json({ data });
+  const { id } = await context.params;
+  try {
+    const data: Exam | null = await getExamDetailPersisted(id);
+    if (!data) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ data });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Failed to load exam" }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
+  if (!isAdminSessionRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await context.params;
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const updated = updateExam(id, {
+    const updated = await updateExamPersisted(id, {
       title: typeof body.title === "string" ? body.title : undefined,
       totalUsers:
         body.totalUsers === null
@@ -57,17 +65,25 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!updated) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json({ data: getExamDetail(id) });
+    return NextResponse.json({ data: updated });
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 }
 
-export async function DELETE(_request: Request, context: RouteContext) {
-  const { id } = await context.params;
-  const ok = deleteExam(id);
-  if (!ok) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+export async function DELETE(request: Request, context: RouteContext) {
+  if (!isAdminSessionRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json({ ok: true });
+  const { id } = await context.params;
+  try {
+    const ok = await deleteExamPersisted(id);
+    if (!ok) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
+  }
 }

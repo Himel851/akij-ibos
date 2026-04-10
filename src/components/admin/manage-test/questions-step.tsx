@@ -5,7 +5,7 @@ import {
   type DraftQuestionPayload,
 } from "./question-modal";
 import { ManageTestHeader } from "@/components/admin/manage-test/manage-test-header";
-import { loadBasicInfo } from "@/lib/manage-test-storage";
+import { getDraftExamId } from "@/lib/manage-test-storage";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -17,11 +17,11 @@ export function QuestionsStep() {
   const [questions, setQuestions] = useState<DraftQuestionPayload[]>([]);
 
   useEffect(() => {
-    if (!loadBasicInfo()) {
+    if (!getDraftExamId()) {
       router.replace("/admin/tests/new");
       return;
     }
-    setReady(true);
+    queueMicrotask(() => setReady(true));
   }, [router]);
 
   const questionNumber = questions.length + 1;

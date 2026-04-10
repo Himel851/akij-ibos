@@ -72,9 +72,7 @@ export function Header() {
 
   async function handleLogout() {
     try {
-      if (isUserDashboard) {
-        await fetch("/api/auth/logout", { method: "POST" });
-      }
+      await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       setMenuOpen(false);
       router.push(isAdminDashboard ? "/" : "/user/login");

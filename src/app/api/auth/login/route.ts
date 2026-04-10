@@ -1,4 +1,6 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE } from "@/lib/auth-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Body = {
@@ -37,7 +39,22 @@ export async function POST(request: Request) {
       email.trim().toLowerCase() === adminEmail &&
       password === adminPassword;
     if (ok) {
-      return NextResponse.json({ ok: true });
+      try {
+        const supabase = await createSupabaseServerClient();
+        await supabase.auth.signOut();
+      } catch {
+        // No Supabase env or session — admin-only login still OK.
+      }
+
+      const response = NextResponse.json({ ok: true });
+      response.cookies.set(ADMIN_SESSION_COOKIE, "1", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 8,
+      });
+      return response;
     }
     return NextResponse.json({ ok: false }, { status: 401 });
   }
@@ -57,6 +74,15 @@ export async function POST(request: Request) {
       if (error) {
         return NextResponse.json({ ok: false, error: error.message }, { status: 401 });
       }
+
+      const cookieStore = await cookies();
+      cookieStore.set(ADMIN_SESSION_COOKIE, "", {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 0,
+      });
 
       return NextResponse.json({ ok: true });
     } catch {

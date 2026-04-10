@@ -1,20 +1,23 @@
 import { NextResponse } from "next/server";
+import { ADMIN_SESSION_COOKIE } from "@/lib/auth-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST() {
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set(ADMIN_SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ ok: true });
+    await supabase.auth.signOut();
   } catch {
-    return NextResponse.json(
-      { ok: false, error: "Supabase auth is not configured" },
-      { status: 500 },
-    );
+    // Best effort: admin logout still works even if Supabase is unavailable.
   }
+
+  return response;
 }

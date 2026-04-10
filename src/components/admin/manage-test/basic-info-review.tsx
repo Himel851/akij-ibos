@@ -2,8 +2,10 @@
 
 import { ManageTestHeader } from "@/components/admin/manage-test/manage-test-header";
 import { formatIsoForDisplay } from "@/lib/datetime-local";
+import { examToBasicInfo } from "@/lib/manage-test-basic-info-map";
 import type { BasicInfo } from "@/lib/manage-test-storage";
-import { loadBasicInfo } from "@/lib/manage-test-storage";
+import { getDraftExamId } from "@/lib/manage-test-storage";
+import type { Exam } from "@/types/exam";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,13 +17,34 @@ export function BasicInfoReview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loaded = loadBasicInfo();
-    if (!loaded) {
+    let cancelled = false;
+    const id = getDraftExamId();
+    if (!id) {
+      setLoading(false);
       router.replace("/admin/tests/new");
       return;
     }
-    setData(loaded);
-    setLoading(false);
+
+    void (async () => {
+      try {
+        const res = await fetch(`/api/exams/${id}`);
+        if (!res.ok) {
+          router.replace("/admin/tests/new");
+          return;
+        }
+        const json = (await res.json()) as { data: Exam };
+        if (cancelled) return;
+        setData(examToBasicInfo(json.data));
+      } catch {
+        if (!cancelled) router.replace("/admin/tests/new");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (loading || !data) {

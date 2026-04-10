@@ -1,13 +1,16 @@
-import {
-  createExam,
-  listExamSummaries,
-} from "@/lib/mock/exams-repository";
+import { createExamPersisted, listExamSummariesPersisted } from "@/lib/exams-persistence";
+import { isAdminSessionRequest } from "@/lib/require-admin-api";
 import type { ExamSummary } from "@/types/exam";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const data: ExamSummary[] = listExamSummaries();
-  return NextResponse.json({ data });
+  try {
+    const data: ExamSummary[] = await listExamSummariesPersisted();
+    return NextResponse.json({ data });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Failed to list exams" }, { status: 500 });
+  }
 }
 
 type CreateBody = {
@@ -22,6 +25,10 @@ type CreateBody = {
 };
 
 export async function POST(request: Request) {
+  if (!isAdminSessionRequest(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: CreateBody;
   try {
     body = (await request.json()) as CreateBody;
@@ -34,17 +41,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
 
-  const summary = createExam({
-    title,
-    totalUsers: body.totalUsers ?? null,
-    totalSlots: body.totalSlots ?? null,
-    questionSetsCount: body.questionSetsCount ?? null,
-    questionType: body.questionType,
-    startTime: body.startTime ?? "",
-    endTime: body.endTime ?? "",
-    durationMinutes: body.durationMinutes ?? 0,
-    questions: [],
-  });
-
-  return NextResponse.json({ data: summary }, { status: 201 });
+  try {
+    const summary = await createExamPersisted({
+      title,
+      totalUsers: body.totalUsers ?? null,
+      totalSlots: body.totalSlots ?? null,
+      questionSetsCount: body.questionSetsCount ?? null,
+      questionType: body.questionType,
+      startTime: body.startTime ?? "",
+      endTime: body.endTime ?? "",
+      durationMinutes: body.durationMinutes ?? 0,
+    });
+    return NextResponse.json({ data: summary }, { status: 201 });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "Failed to create exam" }, { status: 500 });
+  }
 }

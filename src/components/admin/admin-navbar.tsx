@@ -1,6 +1,6 @@
 "use client";
 
-import { clearBasicInfo } from "@/lib/manage-test-storage";
+import { clearManageTestSession } from "@/lib/manage-test-storage";
 import { ChevronDown, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,7 +23,7 @@ export function AdminNavbar() {
   }, [menuOpen]);
 
   function handleLogout() {
-    clearBasicInfo();
+    clearManageTestSession();
     setMenuOpen(false);
     router.push("/");
   }
