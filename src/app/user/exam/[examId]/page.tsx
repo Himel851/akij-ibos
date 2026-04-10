@@ -1,15 +1,20 @@
+import { UserExamRunner } from "@/components/user/exam/user-exam-runner";
+import { getExamDetailPersisted } from "@/lib/exams-persistence";
+import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = {
   params: Promise<{ examId: string }>;
 };
 
 export default async function UserExamPage({ params }: PageProps) {
   const { examId } = await params;
-  return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold">Exam</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Exam ID: {examId} — timer, questions, submit — implement here.
-      </p>
-    </div>
-  );
+  const exam = await getExamDetailPersisted(examId);
+  if (!exam || !exam.title.trim()) {
+    notFound();
+  }
+
+  return <UserExamRunner exam={exam} />;
 }
