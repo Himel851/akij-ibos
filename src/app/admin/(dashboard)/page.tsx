@@ -3,6 +3,10 @@ import { fetchExamSummariesFromApi } from "@/lib/data/exams";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 
+/** Always read exams from DB on each request (avoid static snapshot on Vercel). */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function AdminDashboardPage() {
   let tests: Awaited<ReturnType<typeof fetchExamSummariesFromApi>> = [];
   try {
