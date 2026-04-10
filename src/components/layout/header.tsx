@@ -39,6 +39,7 @@ export function Header() {
     !pathname.startsWith("/user/login") &&
     !pathname.startsWith("/user/register");
   const showAccount = isAdminDashboard || isUserDashboard;
+  const logoHref = isAdminDashboard ? "/admin" : isUserDashboard ? "/user" : "/";
 
   useEffect(() => {
     if (!isUserDashboard) return;
@@ -90,7 +91,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-container items-center gap-3 px-4 sm:gap-4 sm:px-6 lg:px-8">
         <div className="flex w-32 shrink-0 items-center sm:w-40">
           <Link
-            href="/"
+            href={logoHref}
             className="flex items-center"
             aria-label="Akij Resource home"
           >
