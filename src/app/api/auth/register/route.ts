@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Body = {
   name?: string;
@@ -32,9 +33,6 @@ function fieldErrors(body: Body): Record<string, string> | null {
   return Object.keys(errors).length ? errors : null;
 }
 
-/** In-memory store until a database is added (dev/demo only; resets on cold start). */
-const registeredEmails = new Set<string>();
-
 export async function POST(request: Request) {
   let body: Body;
   try {
@@ -50,18 +48,39 @@ export async function POST(request: Request) {
 
   const email =
     typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
 
-  if (registeredEmails.has(email)) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "An account with this email already exists",
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, phone, role: "user" },
       },
-      { status: 409 },
+    });
+
+    if (error) {
+      const normalized = error.message.toLowerCase();
+      if (
+        normalized.includes("already registered") ||
+        normalized.includes("already exists")
+      ) {
+        return NextResponse.json(
+          { ok: false, error: "An account with this email already exists" },
+          { status: 409 },
+        );
+      }
+      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Supabase auth is not configured" },
+      { status: 500 },
     );
   }
-
-  registeredEmails.add(email);
-
-  return NextResponse.json({ ok: true });
 }

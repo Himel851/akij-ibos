@@ -54,7 +54,30 @@ export function Login({ subtitle, panel }: LoginProps) {
       return;
     }
 
-    // User login — wire credentials / API later
+    setPending(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, panel: "user" }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+
+      if (res.ok && data.ok) {
+        toast.success("Login successful");
+        router.push("/user");
+        return;
+      }
+      if (res.status === 401) {
+        toast.error("Email or password incorrect");
+        return;
+      }
+      toast.error(data.error ?? "Something went wrong");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (

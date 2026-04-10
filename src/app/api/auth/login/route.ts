@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type Body = {
   email?: string;
@@ -41,5 +42,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  return NextResponse.json({ ok: false }, { status: 501 });
+  if (panel === "user") {
+    if (typeof email !== "string" || typeof password !== "string") {
+      return NextResponse.json({ ok: false }, { status: 400 });
+    }
+
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        return NextResponse.json({ ok: false, error: error.message }, { status: 401 });
+      }
+
+      return NextResponse.json({ ok: true });
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Supabase auth is not configured" },
+        { status: 500 },
+      );
+    }
+  }
+
+  return NextResponse.json({ ok: false }, { status: 400 });
 }

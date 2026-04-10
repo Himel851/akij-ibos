@@ -2,6 +2,15 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Set environment variables in `.env` before running:
+
+```bash
+ADMIN_EMAIL=admin@gmail.com
+ADMIN_PASSWORD=123456
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
 First, run the development server:
 
 ```bash
