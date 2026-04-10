@@ -1,3 +1,4 @@
+import { normalizeExamQuestions } from "@/lib/exam-questions-map";
 import {
   createDraftExam as createDraftExamMock,
   createExam as createExamMock,
@@ -8,7 +9,7 @@ import {
 } from "@/lib/mock/exams-repository";
 import { createSupabaseServiceClient, hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
 import type { Exam, ExamSummary } from "@/types/exam";
-import type { Question } from "@/types/question";
+import type { ExamQuestion } from "@/types/question";
 
 type ExamRow = {
   id: string;
@@ -24,12 +25,8 @@ type ExamRow = {
   status: string;
 };
 
-function isQuestionArray(v: unknown): v is Question[] {
-  return Array.isArray(v) && v.every((x) => x && typeof x === "object");
-}
-
 function rowToStoredShape(row: ExamRow): Exam {
-  const questions: Question[] = isQuestionArray(row.questions) ? row.questions : [];
+  const questions = normalizeExamQuestions(row.questions);
   return {
     id: row.id,
     title: row.title,
@@ -74,7 +71,9 @@ export async function listExamSummariesPersisted(): Promise<ExamSummary[]> {
 
 export async function getExamDetailPersisted(id: string): Promise<Exam | null> {
   if (!hasSupabaseServiceConfig()) {
-    return getExamDetailMock(id);
+    const e = getExamDetailMock(id);
+    if (!e) return null;
+    return { ...e, questions: normalizeExamQuestions(e.questions) };
   }
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase.from("exams").select("*").eq("id", id).maybeSingle();
@@ -157,7 +156,7 @@ type ExamPatch = {
   startTime?: string;
   endTime?: string;
   durationMinutes?: number;
-  questions?: Question[];
+  questions?: ExamQuestion[];
 };
 
 export async function updateExamPersisted(id: string, patch: ExamPatch): Promise<Exam | null> {
@@ -171,7 +170,8 @@ export async function updateExamPersisted(id: string, patch: ExamPatch): Promise
       startTime: patch.startTime,
       endTime: patch.endTime,
       durationMinutes: patch.durationMinutes,
-      questions: patch.questions,
+      questions:
+        patch.questions !== undefined ? normalizeExamQuestions(patch.questions) : undefined,
     });
     return updated ? getExamDetailMock(id) : null;
   }
@@ -185,7 +185,7 @@ export async function updateExamPersisted(id: string, patch: ExamPatch): Promise
   if (patch.startTime !== undefined) row.start_time = patch.startTime || null;
   if (patch.endTime !== undefined) row.end_time = patch.endTime || null;
   if (patch.durationMinutes !== undefined) row.duration_minutes = patch.durationMinutes;
-  if (patch.questions !== undefined) row.questions = patch.questions;
+  if (patch.questions !== undefined) row.questions = normalizeExamQuestions(patch.questions);
   row.updated_at = new Date().toISOString();
 
   const { data, error } = await supabase

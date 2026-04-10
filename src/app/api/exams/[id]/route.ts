@@ -1,3 +1,4 @@
+import { normalizeExamQuestions } from "@/lib/exam-questions-map";
 import { deleteExamPersisted, getExamDetailPersisted, updateExamPersisted } from "@/lib/exams-persistence";
 import { isAdminSessionRequest } from "@/lib/require-admin-api";
 import type { Exam } from "@/types/exam";
@@ -60,7 +61,9 @@ export async function PATCH(request: Request, context: RouteContext) {
         typeof body.durationMinutes === "number"
           ? body.durationMinutes
           : undefined,
-      questions: Array.isArray(body.questions) ? body.questions : undefined,
+      questions: Array.isArray(body.questions)
+        ? normalizeExamQuestions(body.questions)
+        : undefined,
     });
     if (!updated) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });

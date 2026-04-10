@@ -1,8 +1,19 @@
 export type QuestionType = "checkbox" | "radio" | "text";
 
-export type Question = {
+export type McqOption = {
   id: string;
-  title: string;
-  type: QuestionType;
-  options?: string[];
+  text: string;
+  isCorrect: boolean;
 };
+
+/** Stored in `exams.questions` (jsonb) — wizard + API detail. */
+export type ExamQuestion = {
+  id: string;
+  score: number;
+  type: QuestionType;
+  prompt: string;
+  options: McqOption[];
+};
+
+/** Alias — same as `ExamQuestion` (legacy name). */
+export type Question = ExamQuestion;
