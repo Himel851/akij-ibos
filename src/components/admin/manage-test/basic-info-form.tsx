@@ -14,7 +14,7 @@ import {
   getDraftExamId,
   setDraftExamId,
 } from "@/lib/manage-test-storage";
-import { CalendarClock, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Exam } from "@/types/exam";
@@ -95,11 +95,7 @@ function DateTimeLocalInput({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 pl-3 pr-10 text-sm text-zinc-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-      />
-      <CalendarClock
-        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
-        aria-hidden
+        className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 pl-3 pr-4 text-sm text-zinc-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 cursor-pointer"
       />
     </div>
   );
@@ -408,7 +404,7 @@ function BasicInfoFormInner() {
           </Link>
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary-hover"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary-hover cursor-pointer"
           >
             Save & Continue
           </button>

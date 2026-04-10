@@ -8,6 +8,7 @@ import { RichTextArea } from "@/components/admin/manage-test/rich-text-area";
 import type { QuestionType } from "@/types/question";
 import { Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useId, useState } from "react";
+import { toast } from "react-toastify";
 
 export type { DraftOption, DraftQuestionPayload } from "./question-modal-types";
 
@@ -146,12 +147,39 @@ export function QuestionModal({
   }, [open]);
 
   function buildPayload(): DraftQuestionPayload {
+    const nonEmpty = options
+      .map((o) => ({ ...o, text: o.text.trim() }))
+      .filter((o) => o.text !== "");
     return {
       score,
       type,
       prompt: prompt.trim(),
-      options: options.map((o) => ({ ...o })),
+      options: nonEmpty,
     };
+  }
+
+  function validateForSave(): boolean {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt) {
+      toast.error("Please enter the question");
+      return false;
+    }
+    const nonEmptyCount = options.filter((o) => o.text.trim() !== "").length;
+    if (nonEmptyCount < 2) {
+      toast.error("Add at least 2 options with text");
+      return false;
+    }
+    return true;
+  }
+
+  function handleSaveClick() {
+    if (!validateForSave()) return;
+    onSave(buildPayload());
+  }
+
+  function handleSaveAndAddMoreClick() {
+    if (!validateForSave()) return;
+    onSaveAndAddMore(buildPayload());
   }
 
   function handleCorrectChange(optionId: string, checked: boolean) {
@@ -182,7 +210,7 @@ export function QuestionModal({
 
   function removeOption(id: string) {
     setOptions((prev) =>
-      prev.length <= 1 ? prev : prev.filter((o) => o.id !== id),
+      prev.length <= 2 ? prev : prev.filter((o) => o.id !== id),
     );
   }
 
@@ -274,14 +302,14 @@ export function QuestionModal({
         <div className="flex justify-end gap-3 border-t border-zinc-200 px-5 py-4">
           <button
             type="button"
-            onClick={() => onSave(buildPayload())}
+            onClick={handleSaveClick}
             className="rounded-lg border border-primary bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 cursor-pointer"
           >
             Save
           </button>
           <button
             type="button"
-            onClick={() => onSaveAndAddMore(buildPayload())}
+            onClick={handleSaveAndAddMoreClick}
             className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover cursor-pointer"
           >
             Save & Add More
