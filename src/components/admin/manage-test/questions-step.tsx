@@ -20,7 +20,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
-export function QuestionsStep() {
+type QuestionsStepProps = {
+  /** When set (e.g. from `/admin/tests/[examId]/questions`), uses this exam instead of draft session id. */
+  examId?: string;
+};
+
+function resolveExamId(examIdProp: string | undefined): string | null {
+  if (examIdProp?.trim()) return examIdProp.trim();
+  return getDraftExamId();
+}
+
+export function QuestionsStep({ examId: examIdProp }: QuestionsStepProps = {}) {
   const router = useRouter();
   const [phase, setPhase] = useState<"loading" | "ready">("loading");
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,9 +51,9 @@ export function QuestionsStep() {
       : questions.length + 1;
 
   useEffect(() => {
-    const id = getDraftExamId();
+    const id = resolveExamId(examIdProp);
     if (!id) {
-      router.replace("/admin/tests/new");
+      if (!examIdProp) router.replace("/admin/tests/new");
       return;
     }
 
@@ -66,10 +76,10 @@ export function QuestionsStep() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, examIdProp]);
 
   async function persistQuestions(next: ExamQuestion[]) {
-    const id = getDraftExamId();
+    const id = resolveExamId(examIdProp);
     if (!id) throw new Error("Missing exam");
     setSaving(true);
     try {
@@ -138,9 +148,18 @@ export function QuestionsStep() {
     );
   }
 
+  const isExamContext = Boolean(examIdProp?.trim());
+
   return (
     <div className="mx-auto w-full max-w-container space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <ManageTestHeader variant="complete" />
+      <ManageTestHeader
+        variant="complete"
+        title={isExamContext ? "Exam questions" : undefined}
+        backHref={
+          isExamContext ? `/admin/tests/${examIdProp}/users` : undefined
+        }
+        backLabel={isExamContext ? "Back to candidates" : undefined}
+      />
 
       <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
         <button

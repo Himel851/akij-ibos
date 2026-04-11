@@ -66,33 +66,44 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
       </div>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
-          Candidates
-        </h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          <span className="font-semibold text-zinc-800">{exam.title}</span>
-          {exam.totalUsers > 0 ? (
-            <>
-              {" "}
-              · Expected enrollment:{" "}
-              <span className="font-medium text-zinc-800">
-                {exam.totalUsers.toLocaleString("en-US")}
-              </span>
-            </>
-          ) : null}
-          {useDatabase && rows.length > 0 ? (
-            <>
-              {" "}
-              · In database:{" "}
-              <span className="font-medium text-zinc-800">{rows.length}</span>
-            </>
-          ) : null}
-        </p>
-        {showingSample ? (
-          <p className="mt-2 text-xs text-zinc-500">
-            Showing a sample of {rows.length} demo rows (Supabase not configured).
-          </p>
-        ) : null}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+              Candidates
+            </h1>
+            <p className="mt-1 text-sm text-zinc-600">
+              <span className="font-semibold text-zinc-800">{exam.title}</span>
+              {exam.totalUsers > 0 ? (
+                <>
+                  {" "}
+                  · Expected enrollment:{" "}
+                  <span className="font-medium text-zinc-800">
+                    {exam.totalUsers.toLocaleString("en-US")}
+                  </span>
+                </>
+              ) : null}
+              {useDatabase && rows.length > 0 ? (
+                <>
+                  {" "}
+                  · In database:{" "}
+                  <span className="font-medium text-zinc-800">{rows.length}</span>
+                </>
+              ) : null}
+            </p>
+            {showingSample ? (
+              <p className="mt-2 text-xs text-zinc-500">
+                Showing a sample of {rows.length} demo rows (Supabase not
+                configured).
+              </p>
+            ) : null}
+          </div>
+          <Link
+            href={`/admin/tests/${examId}/questions`}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary-hover"
+          >
+            Show Questions
+          </Link>
+        </div>
 
         {rows.length === 0 ? (
           <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50/50 p-8 shadow-sm sm:p-12">

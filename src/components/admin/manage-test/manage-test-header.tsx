@@ -13,10 +13,15 @@ type CompleteVariant = {
 
 type Props = {
   title?: string;
+  /** Defaults to /admin */
+  backHref?: string;
+  backLabel?: string;
 } & (TwoStepVariant | CompleteVariant);
 
 export function ManageTestHeader(props: Props) {
   const title = props.title ?? "Manage Online Test";
+  const backHref = props.backHref ?? "/admin";
+  const backLabel = props.backLabel ?? "Back to Dashboard";
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
@@ -72,10 +77,10 @@ export function ManageTestHeader(props: Props) {
           )}
         </div>
         <Link
-          href="/admin"
+          href={backHref}
           className="inline-flex shrink-0 items-center justify-center rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 shadow-sm transition hover:bg-zinc-50"
         >
-          Back to Dashboard
+          {backLabel}
         </Link>
       </div>
     </div>
