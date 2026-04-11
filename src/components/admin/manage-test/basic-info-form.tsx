@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { ManageTestHeader } from "@/components/admin/manage-test/manage-test-header";
 import { FieldShell } from "@/components/admin/manage-test/field-shell";
 import {
@@ -140,9 +141,12 @@ function BasicInfoFormInner() {
           return;
         }
 
-        const examRes = await fetch(`/api/exams/${id}`);
-        if (!examRes.ok) {
-          if (examRes.status === 404) {
+        const { data: examBody, status: examStatus } = await axios.get<{
+          data: Exam;
+        }>(`/api/exams/${id}`, { validateStatus: () => true });
+
+        if (examStatus < 200 || examStatus >= 300) {
+          if (examStatus === 404) {
             clearDraftExamId();
             if (cancelled) return;
             setExamId(null);
@@ -154,11 +158,10 @@ function BasicInfoFormInner() {
             setReady(true);
             return;
           }
-          throw new Error(`Could not load exam (${examRes.status})`);
+          throw new Error(`Could not load exam (${examStatus})`);
         }
 
-        const examJson = (await examRes.json()) as { data: Exam };
-        const loaded = examToBasicInfo(examJson.data);
+        const loaded = examToBasicInfo(examBody.data);
         if (cancelled) return;
         setExamId(id);
         setForm({
@@ -214,10 +217,12 @@ function BasicInfoFormInner() {
     const patch = basicInfoToExamPatch(data);
     try {
       if (!examId) {
-        const res = await fetch("/api/exams", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const { data: body, status } = await axios.post<{
+          data: { id: string };
+          error?: string;
+        }>(
+          "/api/exams",
+          {
             status: "draft",
             title: patch.title,
             totalUsers: patch.totalUsers,
@@ -227,22 +232,22 @@ function BasicInfoFormInner() {
             startTime: patch.startTime,
             endTime: patch.endTime,
             durationMinutes: patch.durationMinutes,
-          }),
-        });
-        if (!res.ok) {
-          const j = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(j.error ?? "Save failed");
+          },
+          { validateStatus: () => true },
+        );
+        if (status < 200 || status >= 300) {
+          throw new Error(body.error ?? "Save failed");
         }
-        const json = (await res.json()) as { data: { id: string } };
-        setDraftExamId(json.data.id);
+        setDraftExamId(body.data.id);
         router.push("/admin/tests/new/review");
         return;
       }
 
-      const res = await fetch(`/api/exams/${examId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const { data: patchBody, status: patchStatus } = await axios.patch<{
+        error?: string;
+      }>(
+        `/api/exams/${examId}`,
+        {
           title: patch.title,
           totalUsers: patch.totalUsers,
           totalSlots: patch.totalSlots,
@@ -251,11 +256,11 @@ function BasicInfoFormInner() {
           startTime: patch.startTime,
           endTime: patch.endTime,
           durationMinutes: patch.durationMinutes,
-        }),
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error ?? "Save failed");
+        },
+        { validateStatus: () => true },
+      );
+      if (patchStatus < 200 || patchStatus >= 300) {
+        throw new Error(patchBody.error ?? "Save failed");
       }
       router.push("/admin/tests/new/review");
     } catch (err) {

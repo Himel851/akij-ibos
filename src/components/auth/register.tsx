@@ -1,9 +1,16 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
+
+type RegisterApiResponse = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+};
 
 type RegisterProps = {
   subtitle?: string;
@@ -54,18 +61,13 @@ export function Register({ subtitle }: RegisterProps) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, password }),
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        fieldErrors?: Record<string, string>;
-      };
+      const { data, status } = await axios.post<RegisterApiResponse>(
+        "/api/auth/register",
+        { name, phone, email, password },
+        { validateStatus: () => true },
+      );
 
-      if (res.ok && data.ok) {
+      if (status >= 200 && status < 300 && data.ok) {
         toast.success("Account created. You can log in now.");
         router.push("/user/login");
         return;
@@ -75,7 +77,7 @@ export function Register({ subtitle }: RegisterProps) {
         toast.error(first ?? "Check your details");
         return;
       }
-      if (res.status === 409 && data.error) {
+      if (status === 409 && data.error) {
         toast.error(data.error);
         return;
       }

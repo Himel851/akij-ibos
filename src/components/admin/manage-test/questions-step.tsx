@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { ConfirmDialog } from "./confirm-dialog";
 import {
   QuestionModal,
@@ -49,9 +50,10 @@ export function QuestionsStep() {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/api/exams/${id}`);
-        if (!res.ok) throw new Error("load failed");
-        const json = (await res.json()) as { data: { questions?: unknown } };
+        const { data: json, status } = await axios.get<{
+          data: { questions?: unknown };
+        }>(`/api/exams/${id}`, { validateStatus: () => true });
+        if (status < 200 || status >= 300) throw new Error("load failed");
         if (cancelled) return;
         setQuestions(normalizeExamQuestions(json.data.questions));
       } catch {
@@ -71,14 +73,13 @@ export function QuestionsStep() {
     if (!id) throw new Error("Missing exam");
     setSaving(true);
     try {
-      const res = await fetch(`/api/exams/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questions: next }),
-      });
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? "Save failed");
+      const { data: errBody, status } = await axios.patch<{ error?: string }>(
+        `/api/exams/${id}`,
+        { questions: next },
+        { validateStatus: () => true },
+      );
+      if (status < 200 || status >= 300) {
+        throw new Error(errBody.error ?? "Save failed");
       }
     } finally {
       setSaving(false);

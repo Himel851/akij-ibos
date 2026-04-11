@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +10,11 @@ type LoginProps = {
   /** Shown under the main title for context (e.g. admin vs user). */
   subtitle?: string;
   panel: "admin" | "user";
+};
+
+type LoginApiResponse = {
+  ok?: boolean;
+  error?: string;
 };
 
 export function Login({ subtitle, panel }: LoginProps) {
@@ -25,23 +31,22 @@ export function Login({ subtitle, panel }: LoginProps) {
     if (panel === "admin") {
       setPending(true);
       try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, panel: "admin" }),
-        });
-        const data = (await res.json()) as { ok?: boolean; error?: string };
+        const { data, status } = await axios.post<LoginApiResponse>(
+          "/api/auth/login",
+          { email, password, panel: "admin" },
+          { validateStatus: () => true },
+        );
 
-        if (res.ok && data.ok) {
+        if (status >= 200 && status < 300 && data.ok) {
           toast.success("Login successful");
           router.push("/admin");
           return;
         }
-        if (res.status === 401) {
+        if (status === 401) {
           toast.error("Email or password incorrect");
           return;
         }
-        if (res.status === 500) {
+        if (status === 500) {
           toast.error(data.error ?? "Server error");
           return;
         }
@@ -56,19 +61,18 @@ export function Login({ subtitle, panel }: LoginProps) {
 
     setPending(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, panel: "user" }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const { data, status } = await axios.post<LoginApiResponse>(
+        "/api/auth/login",
+        { email, password, panel: "user" },
+        { validateStatus: () => true },
+      );
 
-      if (res.ok && data.ok) {
+      if (status >= 200 && status < 300 && data.ok) {
         toast.success("Login successful");
         router.push("/user");
         return;
       }
-      if (res.status === 401) {
+      if (status === 401) {
         toast.error("Email or password incorrect");
         return;
       }
