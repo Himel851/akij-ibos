@@ -3,11 +3,7 @@
 import axios from "axios";
 import { ManageTestHeader } from "@/components/admin/manage-test/manage-test-header";
 import { FieldShell } from "@/components/admin/manage-test/field-shell";
-import {
-  datetimeLocalToIso,
-  isoToDatetimeLocal,
-  minutesBetweenDatetimeLocal,
-} from "@/lib/datetime-local";
+import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/datetime-local";
 import { basicInfoToExamPatch, examToBasicInfo } from "@/lib/manage-test-basic-info-map";
 import type { BasicInfo } from "@/lib/manage-test-storage";
 import {
@@ -19,7 +15,7 @@ import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Exam } from "@/types/exam";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 const emptyBasicInfo: BasicInfo = {
@@ -183,12 +179,6 @@ function BasicInfoFormInner() {
     };
   }, [router, searchParams]);
 
-  const durationMinutes = useMemo(
-    () =>
-      form ? minutesBetweenDatetimeLocal(form.startLocal, form.endLocal) : "",
-    [form],
-  );
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!form) return;
@@ -203,6 +193,13 @@ function BasicInfoFormInner() {
     }
 
     const fd = new FormData(e.currentTarget);
+    const durationRaw = String(fd.get("duration") ?? "").trim();
+    const durationNum = Number.parseInt(durationRaw, 10);
+    if (!Number.isFinite(durationNum) || durationNum < 1) {
+      toast.error("Enter exam duration as minutes (a whole number, at least 1)");
+      return;
+    }
+
     const data: BasicInfo = {
       title: String(fd.get("title") ?? ""),
       totalCandidates: String(fd.get("totalCandidates") ?? ""),
@@ -211,7 +208,7 @@ function BasicInfoFormInner() {
       questionType: String(fd.get("questionType") ?? ""),
       startTime: datetimeLocalToIso(form.startLocal),
       endTime: datetimeLocalToIso(form.endLocal),
-      duration: durationMinutes,
+      duration: String(durationNum),
     };
 
     const patch = basicInfoToExamPatch(data);
@@ -387,13 +384,17 @@ function BasicInfoFormInner() {
                   }
                 />
               </FieldShell>
-              <FieldShell label="Duration (minutes)">
+              <FieldShell label="Duration (minutes)" required>
                 <input
-                  readOnly
-                  value={durationMinutes ? `${durationMinutes} min` : ""}
-                  placeholder="Auto from start & end"
-                  className="w-full cursor-not-allowed rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 placeholder:text-zinc-400"
-                  aria-readonly
+                  name="duration"
+                  type="number"
+                  required
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  defaultValue={initial.duration || ""}
+                  placeholder="e.g. 20"
+                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </FieldShell>
             </div>

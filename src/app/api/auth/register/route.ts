@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServiceClient,
+  hasSupabaseServiceConfig,
+} from "@/lib/supabase/service-role";
 
 type Body = {
   name?: string;
@@ -33,6 +37,31 @@ function fieldErrors(body: Body): Record<string, string> | null {
   return Object.keys(errors).length ? errors : null;
 }
 
+function mapAuthErrorToResponse(message: string) {
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes("already registered") ||
+    normalized.includes("already exists") ||
+    normalized.includes("already been registered")
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "An account with this email already exists" },
+      { status: 409 },
+    );
+  }
+  if (normalized.includes("rate limit")) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Too many signup attempts from this email or network. Please wait a few minutes and try again.",
+      },
+      { status: 429 },
+    );
+  }
+  return NextResponse.json({ ok: false, error: message }, { status: 400 });
+}
+
 export async function POST(request: Request) {
   let body: Body;
   try {
@@ -53,6 +82,21 @@ export async function POST(request: Request) {
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
 
   try {
+    if (hasSupabaseServiceConfig()) {
+      const admin = createSupabaseServiceClient();
+      const { error } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { name, phone, role: "user" },
+      });
+
+      if (error) {
+        return mapAuthErrorToResponse(error.message);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.signUp({
       email,
@@ -63,17 +107,7 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      const normalized = error.message.toLowerCase();
-      if (
-        normalized.includes("already registered") ||
-        normalized.includes("already exists")
-      ) {
-        return NextResponse.json(
-          { ok: false, error: "An account with this email already exists" },
-          { status: 409 },
-        );
-      }
-      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+      return mapAuthErrorToResponse(error.message);
     }
 
     return NextResponse.json({ ok: true });
