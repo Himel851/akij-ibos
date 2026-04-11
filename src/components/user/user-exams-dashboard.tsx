@@ -25,24 +25,20 @@ export function UserExamsDashboard({ exams }: Props) {
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
           Online Tests
         </h1>
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:max-w-xl lg:flex-1 lg:pl-8">
-          <div className="flex w-full items-center gap-2 sm:max-w-xl">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end lg:flex-1 lg:pl-8">
+          <div className="relative w-full max-w-xl flex-1">
             <input
               type="search"
               name="exam-search"
+              placeholder="Search by exam title"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by exam title"
               aria-label="Search by exam title"
-              className="min-w-0 flex-1 rounded-full border border-primary/25 bg-white py-2.5 pl-4 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/15 focus:border-primary focus:ring-2"
+              className="w-full rounded-lg border border-primary/25 bg-white py-2.5 pl-4 pr-11 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/15 focus:border-primary focus:ring-2"
             />
-            <button
-              type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition hover:bg-primary-hover"
-              aria-label="Search"
-            >
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-primary">
               <Search className="h-5 w-5" aria-hidden />
-            </button>
+            </span>
           </div>
         </div>
       </div>
