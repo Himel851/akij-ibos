@@ -38,8 +38,8 @@ export function Register({ subtitle }: RegisterProps) {
       toast.error("Please enter your phone number");
       return;
     }
-    if (phone.replace(/\D/g, "").length < 10) {
-      toast.error("Please enter a valid phone number");
+    if (phone.replace(/\D/g, "").length < 11) {
+      toast.error("Please enter a valid phone number (11 digits)");
       return;
     }
     if (!email) {
@@ -103,7 +103,7 @@ export function Register({ subtitle }: RegisterProps) {
             htmlFor="name"
             className="block text-sm font-medium text-zinc-800"
           >
-            Name
+            Name <span className="text-red-500">*</span>
           </label>
           <input
             id="name"
@@ -111,6 +111,7 @@ export function Register({ subtitle }: RegisterProps) {
             type="text"
             autoComplete="name"
             placeholder="Your full name"
+            required
             disabled={pending}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
@@ -120,13 +121,14 @@ export function Register({ subtitle }: RegisterProps) {
             htmlFor="phone"
             className="block text-sm font-medium text-zinc-800"
           >
-            Phone
+            Phone <span className="text-red-500">*</span>
           </label>
           <input
             id="phone"
             name="phone"
             type="tel"
             autoComplete="tel"
+            required
             placeholder="e.g. 01712 345678"
             disabled={pending}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
@@ -137,7 +139,7 @@ export function Register({ subtitle }: RegisterProps) {
             htmlFor="email"
             className="block text-sm font-medium text-zinc-800"
           >
-            Email
+            Email <span className="text-red-500">*</span>
           </label>
           <input
             id="email"
@@ -145,6 +147,7 @@ export function Register({ subtitle }: RegisterProps) {
             type="email"
             autoComplete="email"
             placeholder="Your primary email address"
+            required
             disabled={pending}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
@@ -154,7 +157,7 @@ export function Register({ subtitle }: RegisterProps) {
             htmlFor="password"
             className="block text-sm font-medium text-zinc-800"
           >
-            Password
+            Password <span className="text-red-500">*</span>
           </label>
           <input
             id="password"
@@ -162,6 +165,7 @@ export function Register({ subtitle }: RegisterProps) {
             type="password"
             autoComplete="new-password"
             placeholder="At least 8 characters"
+            required
             disabled={pending}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
@@ -171,7 +175,7 @@ export function Register({ subtitle }: RegisterProps) {
             htmlFor="confirmPassword"
             className="block text-sm font-medium text-zinc-800"
           >
-            Confirm password
+            Confirm password <span className="text-red-500">*</span>
           </label>
           <input
             id="confirmPassword"
@@ -179,6 +183,7 @@ export function Register({ subtitle }: RegisterProps) {
             type="password"
             autoComplete="new-password"
             placeholder="Re-enter your password"
+            required
             disabled={pending}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none ring-primary/20 focus:border-primary focus:ring-2 disabled:opacity-60"
           />
