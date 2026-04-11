@@ -1,6 +1,11 @@
+import { listExamAttemptsForAdminPersisted } from "@/lib/exam-attempts-persistence";
 import type { ExamScoreResult } from "@/lib/exam-scoring";
 import { createSupabaseServiceClient, hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
-import type { ExamCandidateRow, ExamCandidateStatus } from "@/types/exam-candidate";
+import type {
+  ExamAdminTableRow,
+  ExamCandidateRow,
+  ExamCandidateStatus,
+} from "@/types/exam-candidate";
 
 type ExamCandidateDbRow = {
   id: string;
@@ -55,6 +60,37 @@ function rowToCandidate(row: ExamCandidateDbRow): ExamCandidateRow {
   };
 }
 
+function candidateRowToAdminTableRow(c: ExamCandidateRow): ExamAdminTableRow {
+  return {
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    status: c.status,
+    scorePercent: c.scorePercent,
+    correctCount: c.correctCount,
+    wrongCount: c.wrongCount,
+    skippedCount: c.skippedCount,
+    totalPoints: c.totalPoints,
+    maxPoints: c.maxPoints,
+    submittedAt: c.lastActivityAt,
+  };
+}
+
+/**
+ * Admin table: one row per submit attempt. Falls back to one row per `exam_candidates`
+ * row when `exam_attempts` is empty (legacy data before attempts were recorded).
+ */
+export async function listExamAdminTableRowsPersisted(
+  examId: string,
+): Promise<ExamAdminTableRow[]> {
+  const attempts = await listExamAttemptsForAdminPersisted(examId);
+  if (attempts.length > 0) {
+    return attempts;
+  }
+  const candidates = await listExamCandidatesPersisted(examId);
+  return candidates.map(candidateRowToAdminTableRow);
+}
+
 /** PostgREST: relation missing from schema (migration not applied yet). */
 function isMissingExamCandidatesTable(error: { code?: string; message?: string }): boolean {
   if (error.code === "PGRST205") return true;
@@ -106,6 +142,7 @@ export async function listExamCandidatesPersisted(examId: string): Promise<ExamC
     throw error;
   }
   if (!data?.length) return [];
+
   return (data as ExamCandidateDbRow[]).map(rowToCandidate);
 }
 

@@ -1,4 +1,4 @@
-import { listExamCandidatesPersisted } from "@/lib/exam-candidates-persistence";
+import { listExamAdminTableRowsPersisted } from "@/lib/exam-candidates-persistence";
 import { isAdminSessionRequest } from "@/lib/require-admin-api";
 import { NextResponse } from "next/server";
 
@@ -12,7 +12,7 @@ export async function GET(request: Request, context: RouteContext) {
   }
   const { id } = await context.params;
   try {
-    const data = await listExamCandidatesPersisted(id);
+    const data = await listExamAdminTableRowsPersisted(id);
     return NextResponse.json({ data });
   } catch (e) {
     console.error(e);

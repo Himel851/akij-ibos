@@ -1,8 +1,8 @@
-import { listExamCandidatesPersisted } from "@/lib/exam-candidates-persistence";
+import { listExamAdminTableRowsPersisted } from "@/lib/exam-candidates-persistence";
 import { getExamDetailPersisted } from "@/lib/exams-persistence";
-import { buildMockCandidatesForExam } from "@/lib/mock-exam-candidates";
+import { buildMockExamAdminTableRowsForExam } from "@/lib/mock-exam-candidates";
 import { hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
-import type { ExamCandidateRow, ExamCandidateStatus } from "@/types/exam-candidate";
+import type { ExamAdminTableRow, ExamCandidateStatus } from "@/types/exam-candidate";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -43,17 +43,15 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
   if (!exam) notFound();
 
   const useDatabase = hasSupabaseServiceConfig();
-  let rows: ExamCandidateRow[] = [];
+  let rows: ExamAdminTableRow[] = [];
   let showingSample = false;
 
   if (useDatabase) {
-    rows = await listExamCandidatesPersisted(examId);
+    rows = await listExamAdminTableRowsPersisted(examId);
   } else {
-    rows = buildMockCandidatesForExam(exam.id, exam.totalUsers);
+    rows = buildMockExamAdminTableRowsForExam(exam.id, exam.totalUsers);
     showingSample = exam.totalUsers > rows.length;
   }
-
-  console.log(rows);
 
   return (
     <div className="mx-auto w-full max-w-container flex-1 px-4 py-6 sm:px-6 lg:px-8">
@@ -128,7 +126,7 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200">
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[960px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">
                   <th className="px-4 py-3 font-semibold text-zinc-800">
@@ -156,7 +154,7 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
                     %
                   </th>
                   <th className="px-4 py-3 font-semibold text-zinc-800">
-                    Last activity
+                    Submitted
                   </th>
                 </tr>
               </thead>
@@ -195,7 +193,7 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
                       {r.scorePercent !== null ? `${r.scorePercent}%` : "—"}
                     </td>
                     <td className="px-4 py-3 text-zinc-600 tabular-nums">
-                      {new Date(r.lastActivityAt).toLocaleString("en-US", {
+                      {new Date(r.submittedAt).toLocaleString("en-US", {
                         dateStyle: "medium",
                         timeStyle: "short",
                       })}

@@ -1,5 +1,6 @@
-import { parseExamSubmissionAnswers, parseSkippedIds } from "@/lib/exam-submission-parse";
+import { insertExamAttemptPersisted } from "@/lib/exam-attempts-persistence";
 import { upsertExamCandidateResult } from "@/lib/exam-candidates-persistence";
+import { parseExamSubmissionAnswers, parseSkippedIds } from "@/lib/exam-submission-parse";
 import { computeExamScore } from "@/lib/exam-scoring";
 import { getExamDetailPersisted } from "@/lib/exams-persistence";
 import { hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
@@ -95,6 +96,18 @@ export async function POST(request: Request, context: RouteContext) {
       },
       { status: 500 },
     );
+  }
+
+  try {
+    await insertExamAttemptPersisted({
+      examId,
+      userId: user.id,
+      email: user.email,
+      fullName,
+      score,
+    });
+  } catch (e) {
+    console.error("[exam_attempts] history row not saved (latest result still saved)", e);
   }
 
   return NextResponse.json({

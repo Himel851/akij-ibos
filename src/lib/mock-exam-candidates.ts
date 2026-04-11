@@ -1,4 +1,8 @@
-import type { ExamCandidateRow, ExamCandidateStatus } from "@/types/exam-candidate";
+import type {
+  ExamAdminTableRow,
+  ExamCandidateRow,
+  ExamCandidateStatus,
+} from "@/types/exam-candidate";
 
 const FIRST = [
   "Ayesha",
@@ -90,4 +94,59 @@ export function buildMockCandidatesForExam(
     });
   }
   return rows;
+}
+
+/** Demo: multiple table rows per user when they have several completed attempts. */
+export function buildMockExamAdminTableRowsForExam(
+  examId: string,
+  totalUsers: number,
+  maxRows = 40,
+): ExamAdminTableRow[] {
+  const base = buildMockCandidatesForExam(examId, totalUsers, maxRows);
+  const seed = hashExamId(examId);
+  const out: ExamAdminTableRow[] = [];
+  for (let i = 0; i < base.length; i += 1) {
+    const c = base[i];
+    if (c.status === "not_started") continue;
+    const nAttempts =
+      c.status === "completed" ? 1 + ((seed + i * 13) % 3) : 1;
+    for (let a = 0; a < nAttempts; a += 1) {
+      const t = new Date(c.lastActivityAt);
+      t.setUTCHours(t.getUTCHours() - a * 2);
+      const jitter = (seed + i * 11 + a * 7) % 20;
+      const correct =
+        c.correctCount !== null ? Math.max(0, c.correctCount - a + (jitter % 3)) : null;
+      const wrong =
+        c.wrongCount !== null ? Math.max(0, c.wrongCount + (a % 2)) : null;
+      const skipped = c.skippedCount;
+      const maxPts = c.maxPoints;
+      const totalPts =
+        correct !== null &&
+        wrong !== null &&
+        skipped !== null &&
+        maxPts !== null
+          ? Math.round(
+              (correct / Math.max(1, correct + wrong + skipped)) * maxPts * 100,
+            ) / 100
+          : c.totalPoints;
+      const pct =
+        totalPts !== null && maxPts !== null && maxPts > 0
+          ? Math.min(100, Math.round((totalPts / maxPts) * 100))
+          : c.scorePercent;
+      out.push({
+        id: `${c.id}-att-${a}`,
+        name: c.name,
+        email: c.email,
+        status: c.status === "in_progress" && a === 0 ? "in_progress" : "completed",
+        scorePercent: pct,
+        correctCount: correct,
+        wrongCount: wrong,
+        skippedCount: skipped,
+        totalPoints: totalPts,
+        maxPoints: maxPts,
+        submittedAt: t.toISOString(),
+      });
+    }
+  }
+  return out;
 }

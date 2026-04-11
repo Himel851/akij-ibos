@@ -15,3 +15,19 @@ export type ExamCandidateRow = {
   totalPoints: number | null;
   maxPoints: number | null;
 };
+
+/** One admin table row per submit attempt (or legacy: one row per exam_candidates snapshot). */
+export type ExamAdminTableRow = {
+  id: string;
+  name: string;
+  email: string;
+  status: ExamCandidateStatus;
+  scorePercent: number | null;
+  correctCount: number | null;
+  wrongCount: number | null;
+  skippedCount: number | null;
+  totalPoints: number | null;
+  maxPoints: number | null;
+  /** Attempt `created_at`, or candidate `last_activity_at` when falling back to legacy rows. */
+  submittedAt: string;
+};
