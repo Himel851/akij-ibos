@@ -78,7 +78,7 @@ export function Header() {
       await fetch("/api/auth/logout", { method: "POST" });
     } finally {
       setMenuOpen(false);
-      router.push(isAdminDashboard ? "/" : "/user/login");
+      router.push("/");
       router.refresh();
     }
   }

@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
@@ -19,7 +19,9 @@ type LoginApiResponse = {
 
 export function Login({ subtitle, panel }: LoginProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [pending, setPending] = useState(false);
+  const showAdminCredentialsNote = pathname === "/admin/login";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -91,6 +93,24 @@ export function Login({ subtitle, panel }: LoginProps) {
       </h1>
       {subtitle ? (
         <p className="mt-1 text-center text-sm text-zinc-500">{subtitle}</p>
+      ) : null}
+      {showAdminCredentialsNote ? (
+        <div
+          className="mt-6 rounded-lg border border-gray-200 bg-amber-50/90 px-4 py-3 text-left text-sm text-amber-950"
+          role="note"
+        >
+          <p className="font-medium text-amber-900">Admin Credentials</p>
+          <dl className="mt-2 space-y-1 font-mono text-xs tabular-nums text-amber-950/95">
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-amber-800">Email</dt>
+              <dd>admin@gmail.com</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-amber-800">Password</dt>
+              <dd>123456</dd>
+            </div>
+          </dl>
+        </div>
       ) : null}
       <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
         <div className="space-y-2">
