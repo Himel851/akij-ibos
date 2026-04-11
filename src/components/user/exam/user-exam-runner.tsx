@@ -1,19 +1,14 @@
 "use client";
 
 import { RichTextArea } from "@/components/admin/manage-test/rich-text-area";
-import {
-  computeExamScore,
-  type ExamScoreResult,
-  type UserAnswer,
-} from "@/lib/exam-scoring";
+import type { UserAnswer } from "@/lib/exam-scoring";
+import { useUserExamSessionStore } from "@/stores/user-exam-session-store";
 import type { Exam } from "@/types/exam";
 import type { ExamQuestion, McqOption } from "@/types/question";
 import { Check, Clock, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-
-type Phase = "running" | "timeout" | "complete";
 
 function formatMmSs(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -95,46 +90,27 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
     return Math.max(60, m * 60);
   }, [exam.durationMinutes]);
 
-  const [phase, setPhase] = useState<Phase>("running");
-  const [index, setIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
-  const [answers, setAnswers] = useState<Record<string, UserAnswer>>({});
-  const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
-  const [score, setScore] = useState<ExamScoreResult | null>(null);
-  const [userName, setUserName] = useState("");
-  const resultSubmitSentRef = useRef(false);
+  const phase = useUserExamSessionStore((s) => s.phase);
+  const index = useUserExamSessionStore((s) => s.index);
+  const secondsLeft = useUserExamSessionStore((s) => s.secondsLeft);
+  const answers = useUserExamSessionStore((s) => s.answers);
+  const score = useUserExamSessionStore((s) => s.score);
+  const examIdInStore = useUserExamSessionStore((s) => s.examId);
 
-  const submitResultToServer = useCallback(
-    (
-      answersSnapshot: Record<string, UserAnswer>,
-      skippedSnapshot: Set<string>,
-    ) => {
-      if (resultSubmitSentRef.current) return;
-      resultSubmitSentRef.current = true;
-      void (async () => {
-        try {
-          const res = await fetch(`/api/exams/${exam.id}/submit`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify({
-              answers: answersSnapshot,
-              skippedIds: [...skippedSnapshot],
-            }),
-          });
-          if (!res.ok) {
-            const j = (await res.json().catch(() => ({}))) as { error?: string };
-            console.warn("Could not save exam result:", j.error ?? res.status);
-            resultSubmitSentRef.current = false;
-          }
-        } catch (e) {
-          console.warn("Could not save exam result", e);
-          resultSubmitSentRef.current = false;
-        }
-      })();
-    },
-    [exam.id],
-  );
+  const init = useUserExamSessionStore((s) => s.init);
+  const tick = useUserExamSessionStore((s) => s.tick);
+  const setRadio = useUserExamSessionStore((s) => s.setRadio);
+  const toggleCheckbox = useUserExamSessionStore((s) => s.toggleCheckbox);
+  const setText = useUserExamSessionStore((s) => s.setText);
+  const skipQuestion = useUserExamSessionStore((s) => s.skipQuestion);
+  const goNext = useUserExamSessionStore((s) => s.goNext);
+  const submitExamResultOnce = useUserExamSessionStore((s) => s.submitExamResultOnce);
+
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    init(exam.id, initialSeconds);
+  }, [exam.id, initialSeconds, init]);
 
   useEffect(() => {
     void (async () => {
@@ -156,51 +132,24 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
   useEffect(() => {
     if (phase !== "running") return;
     const id = window.setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          window.clearInterval(id);
-          queueMicrotask(() => setPhase("timeout"));
-          return 0;
-        }
-        return s - 1;
-      });
+      tick();
     }, 1000);
     return () => window.clearInterval(id);
-  }, [phase]);
+  }, [phase, tick]);
+
+  useEffect(() => {
+    if (phase !== "timeout" || !examIdInStore) return;
+    submitExamResultOnce(examIdInStore);
+  }, [phase, examIdInStore, submitExamResultOnce]);
 
   const q = questions[index];
   const currentAns = q ? answers[q.id] : undefined;
   const displayName = userName || "Participant";
 
-  const finishExam = useCallback(() => {
-    const result = computeExamScore(questions, answers, skipped);
-    setScore(result);
-    setPhase("complete");
-    submitResultToServer(answers, skipped);
-  }, [questions, answers, skipped, submitResultToServer]);
-
-  useEffect(() => {
-    if (phase !== "timeout") return;
-    submitResultToServer(answers, skipped);
-  }, [phase, answers, skipped, submitResultToServer]);
-
-  const goNext = useCallback(() => {
-    if (index >= total - 1) {
-      finishExam();
-      return;
-    }
-    setIndex((i) => i + 1);
-  }, [index, total, finishExam]);
-
   const handleSkip = () => {
     if (!q) return;
-    setSkipped((prev) => new Set(prev).add(q.id));
-    setAnswers((prev) => {
-      const next = { ...prev };
-      delete next[q.id];
-      return next;
-    });
-    goNext();
+    skipQuestion(q.id);
+    goNext(questions);
   };
 
   const handleSaveContinue = () => {
@@ -219,28 +168,22 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
         return;
       }
     }
-    goNext();
+    goNext(questions);
   };
 
-  const setRadio = (optionId: string) => {
+  const onSetRadio = (optionId: string) => {
     if (!q) return;
-    setAnswers((prev) => ({ ...prev, [q.id]: { kind: "radio", optionId } }));
+    setRadio(q.id, optionId);
   };
 
-  const toggleCheckbox = (optionId: string) => {
+  const onToggleCheckbox = (optionId: string) => {
     if (!q || q.type !== "checkbox") return;
-    const cur = answers[q.id];
-    const ids =
-      cur?.kind === "checkbox" ? [...cur.optionIds] : [];
-    const i = ids.indexOf(optionId);
-    if (i >= 0) ids.splice(i, 1);
-    else ids.push(optionId);
-    setAnswers((prev) => ({ ...prev, [q.id]: { kind: "checkbox", optionIds: ids } }));
+    toggleCheckbox(q.id, optionId);
   };
 
-  const setText = (text: string) => {
+  const onSetText = (text: string) => {
     if (!q) return;
-    setAnswers((prev) => ({ ...prev, [q.id]: { kind: "text", text } }));
+    setText(q.id, text);
   };
 
   if (total === 0) {
@@ -345,7 +288,7 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                   value={
                     currentAns?.kind === "text" ? currentAns.text : ""
                   }
-                  onChange={setText}
+                  onChange={onSetText}
                   placeholder="Type your answer here…"
                   rows={8}
                 />
@@ -363,7 +306,7 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                           currentAns?.kind === "radio" &&
                             currentAns.optionId === opt.id,
                         )}
-                        onChange={() => setRadio(opt.id)}
+                        onChange={() => onSetRadio(opt.id)}
                         className="h-4 w-4 border-zinc-400 text-primary focus:ring-primary"
                       />
                     ) : (
@@ -373,7 +316,7 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                           currentAns?.kind === "checkbox" &&
                             currentAns.optionIds.includes(opt.id),
                         )}
-                        onChange={() => toggleCheckbox(opt.id)}
+                        onChange={() => onToggleCheckbox(opt.id)}
                         className="h-4 w-4 rounded border-zinc-400 text-primary focus:ring-primary"
                       />
                     )}
