@@ -1,11 +1,15 @@
 "use client";
 
 import { RichTextArea } from "@/components/admin/manage-test/rich-text-area";
-import { computeExamScore, type ExamScoreResult, type UserAnswer } from "@/lib/exam-scoring";
+import {
+  computeExamScore,
+  type ExamScoreResult,
+  type UserAnswer,
+} from "@/lib/exam-scoring";
 import type { Exam } from "@/types/exam";
 import { Check, Clock, X } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 type Phase = "running" | "timeout" | "complete";
@@ -36,6 +40,39 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
   const [score, setScore] = useState<ExamScoreResult | null>(null);
   const [userName, setUserName] = useState("");
+  const resultSubmitSentRef = useRef(false);
+
+  const submitResultToServer = useCallback(
+    (
+      answersSnapshot: Record<string, UserAnswer>,
+      skippedSnapshot: Set<string>,
+    ) => {
+      if (resultSubmitSentRef.current) return;
+      resultSubmitSentRef.current = true;
+      void (async () => {
+        try {
+          const res = await fetch(`/api/exams/${exam.id}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              answers: answersSnapshot,
+              skippedIds: [...skippedSnapshot],
+            }),
+          });
+          if (!res.ok) {
+            const j = (await res.json().catch(() => ({}))) as { error?: string };
+            console.warn("Could not save exam result:", j.error ?? res.status);
+            resultSubmitSentRef.current = false;
+          }
+        } catch (e) {
+          console.warn("Could not save exam result", e);
+          resultSubmitSentRef.current = false;
+        }
+      })();
+    },
+    [exam.id],
+  );
 
   useEffect(() => {
     void (async () => {
@@ -77,7 +114,13 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
     const result = computeExamScore(questions, answers, skipped);
     setScore(result);
     setPhase("complete");
-  }, [questions, answers, skipped]);
+    submitResultToServer(answers, skipped);
+  }, [questions, answers, skipped, submitResultToServer]);
+
+  useEffect(() => {
+    if (phase !== "timeout") return;
+    submitResultToServer(answers, skipped);
+  }, [phase, answers, skipped, submitResultToServer]);
 
   const goNext = useCallback(() => {
     if (index >= total - 1) {

@@ -126,7 +126,7 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-200">
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 bg-zinc-50/90">
                   <th className="px-4 py-3 font-semibold text-zinc-800">
@@ -139,7 +139,19 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
                     Status
                   </th>
                   <th className="px-4 py-3 font-semibold text-zinc-800">
-                    Score
+                    Right
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-zinc-800">
+                    Wrong
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-zinc-800">
+                    Skip
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-zinc-800">
+                    Marks
+                  </th>
+                  <th className="px-4 py-3 font-semibold text-zinc-800">
+                    %
                   </th>
                   <th className="px-4 py-3 font-semibold text-zinc-800">
                     Last activity
@@ -162,6 +174,20 @@ export default async function ExamCandidatesPage({ params }: PageProps) {
                       >
                         {statusLabel(r.status)}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-zinc-700">
+                      {r.correctCount !== null ? r.correctCount : "—"}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-zinc-700">
+                      {r.wrongCount !== null ? r.wrongCount : "—"}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-zinc-700">
+                      {r.skippedCount !== null ? r.skippedCount : "—"}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-zinc-700">
+                      {r.totalPoints !== null && r.maxPoints !== null
+                        ? `${Number(r.totalPoints.toFixed(2))} / ${Number(r.maxPoints.toFixed(2))}`
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-zinc-700">
                       {r.scorePercent !== null ? `${r.scorePercent}%` : "—"}

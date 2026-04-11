@@ -67,6 +67,14 @@ export function buildMockCandidatesForExam(
     const status = pickStatus(seed, i);
     const scorePercent =
       status === "completed" ? 55 + ((seed + i * 11) % 46) : null;
+    const correctCount = status === "completed" ? 2 + ((seed + i * 3) % 6) : null;
+    const wrongCount = status === "completed" ? (seed + i) % 4 : null;
+    const skippedCount = status === "completed" ? (i % 3) : null;
+    const maxPoints = status === "completed" ? 20 : null;
+    const totalPoints =
+      status === "completed" && maxPoints !== null
+        ? Math.round((scorePercent ?? 0) / 100 * maxPoints * 100) / 100
+        : null;
     rows.push({
       id: `${examId}-cand-${i + 1}`,
       name: `${FIRST[fi]} ${LAST[li]}`,
@@ -74,6 +82,11 @@ export function buildMockCandidatesForExam(
       status,
       scorePercent,
       lastActivityAt: formatActivityIso(seed, i),
+      correctCount,
+      wrongCount,
+      skippedCount,
+      totalPoints,
+      maxPoints,
     });
   }
   return rows;
