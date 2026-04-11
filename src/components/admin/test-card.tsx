@@ -1,4 +1,4 @@
-import { Clock, FileText, Users } from "lucide-react";
+import { Clock, FileText, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 
 export type TestCardProps = {
@@ -7,6 +7,7 @@ export type TestCardProps = {
   questionSetLabel: string;
   examSlotsLabel: string;
   examId: string;
+  onDeleteClick?: () => void;
 };
 
 function StatCell({
@@ -39,12 +40,28 @@ export function TestCard({
   questionSetLabel,
   examSlotsLabel,
   examId,
+  onDeleteClick,
 }: TestCardProps) {
   return (
     <article className="flex flex-col rounded-3xl border border-gray-200 bg-white py-8 px-6 shadow-sm">
-      <h2 className="mb-6 text-2xl font-bold leading-snug text-slate-800">
-        {title}
-      </h2>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <h2 className="min-w-0 flex-1 text-2xl font-bold leading-snug text-slate-800">
+          {title}
+        </h2>
+        {onDeleteClick ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onDeleteClick();
+            }}
+            className="shrink-0 rounded-lg p-2 text-zinc-400 transition hover:bg-red-50 hover:text-red-600 cursor-pointer"
+            aria-label={`Delete ${title}`}
+          >
+            <Trash2 className="h-5 w-5" aria-hidden />
+          </button>
+        ) : null}
+      </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-4">
         <StatCell

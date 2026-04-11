@@ -166,6 +166,7 @@ export function QuestionModal({
     { id: nextOptionId(), text: "", isCorrect: false },
     { id: nextOptionId(), text: "", isCorrect: false },
     { id: nextOptionId(), text: "", isCorrect: false },
+    { id: nextOptionId(), text: "", isCorrect: false },
   ]);
 
   const reset = useCallback(() => {
@@ -173,6 +174,7 @@ export function QuestionModal({
     setType("radio");
     setPrompt("");
     setOptions([
+      { id: nextOptionId(), text: "", isCorrect: false },
       { id: nextOptionId(), text: "", isCorrect: false },
       { id: nextOptionId(), text: "", isCorrect: false },
       { id: nextOptionId(), text: "", isCorrect: false },
@@ -455,13 +457,16 @@ export function QuestionModal({
           >
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={handleSaveClick}
-            className="rounded-lg border border-primary bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 cursor-pointer"
-          >
-            {isEditing ? "Save changes" : "Save"}
-          </button>
+          {isEditing ? (
+            <button
+              type="button"
+              onClick={handleSaveClick}
+              className="rounded-lg border border-primary bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 cursor-pointer"
+            >
+              Save changes
+            </button>
+          ) : null}
+         
           {!isEditing ? (
             <button
               type="button"

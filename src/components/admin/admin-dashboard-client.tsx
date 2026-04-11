@@ -1,20 +1,50 @@
 "use client";
 
+import { ConfirmDialog } from "@/components/admin/manage-test/confirm-dialog";
 import { TestCard } from "@/components/admin/test-card";
 import type { ExamSummary } from "@/types/exam";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-toastify";
 
 export function AdminDashboardClient({ tests }: { tests: ExamSummary[] }) {
   const [query, setQuery] = useState("");
+  const [examList, setExamList] = useState(tests);
+  const [deleteTarget, setDeleteTarget] = useState<ExamSummary | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+
+  useEffect(() => {
+    setExamList(tests);
+  }, [tests]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return tests;
-    return tests.filter((t) => t.title.toLowerCase().includes(q));
-  }, [tests, query]);
+    if (!q) return examList;
+    return examList.filter((t) => t.title.toLowerCase().includes(q));
+  }, [examList, query]);
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeletePending(true);
+    try {
+      const res = await fetch(`/api/exams/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? "Delete failed");
+      }
+      setExamList((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast.success("Test deleted");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete test");
+    } finally {
+      setDeletePending(false);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-container flex-1 px-4 py-6 sm:px-6 lg:px-8">
@@ -46,7 +76,7 @@ export function AdminDashboardClient({ tests }: { tests: ExamSummary[] }) {
         </div>
       </div>
 
-      {tests.length === 0 ? (
+      {examList.length === 0 ? (
         <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-8 shadow-sm sm:p-12">
           <div className="flex flex-col items-center justify-center text-center">
             <Image
@@ -79,12 +109,28 @@ export function AdminDashboardClient({ tests }: { tests: ExamSummary[] }) {
               candidatesLabel={t.candidatesLabel}
               questionSetLabel={t.questionSetLabel}
               examSlotsLabel={t.examSlotsLabel}
+              onDeleteClick={() => setDeleteTarget(t)}
             />
           ))}
         </div>
       )}
 
-      {tests.length > 0 ? (
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete this test?"
+        description={
+          deleteTarget
+            ? `Are you sure you want to delete “${deleteTarget.title}”? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Yes"
+        cancelLabel="No"
+        loading={deletePending}
+        onCancel={() => !deletePending && setDeleteTarget(null)}
+        onConfirm={() => void handleConfirmDelete()}
+      />
+
+      {examList.length > 0 ? (
         <div className="mt-10 flex flex-col gap-4 border-t border-zinc-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1">
             <button

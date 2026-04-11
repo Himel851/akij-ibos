@@ -337,14 +337,14 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
               <button
                 type="button"
                 onClick={handleSkip}
-                className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+                className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 cursor-pointer"
               >
                 Skip this Question
               </button>
               <button
                 type="button"
                 onClick={handleSaveContinue}
-                className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+                className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover cursor-pointer"
               >
                 Save & Continue
               </button>
