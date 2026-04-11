@@ -22,6 +22,7 @@ export function Login({ subtitle, panel }: LoginProps) {
   const pathname = usePathname();
   const [pending, setPending] = useState(false);
   const showAdminCredentialsNote = pathname === "/admin/login";
+  const showUserDemoNote = panel === "user";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -110,6 +111,27 @@ export function Login({ subtitle, panel }: LoginProps) {
               <dd>123456</dd>
             </div>
           </dl>
+        </div>
+      ) : null}
+      {showUserDemoNote ? (
+        <div
+          className="mt-6 rounded-lg border border-sky-200 bg-sky-50/90 px-4 py-3 text-left text-sm text-sky-950"
+          role="note"
+        >
+          <p className="font-medium text-sky-900">Demo login</p>
+          <dl className="mt-2 space-y-1 font-mono text-xs tabular-nums text-sky-950/95">
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-sky-800">Email</dt>
+              <dd>himel@gmail.com</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-sky-800">Password</dt>
+              <dd>12345678</dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-xs text-sky-900/90">
+            You can use the demo account above, or register a new account below.
+          </p>
         </div>
       ) : null}
       <form className="mt-8 space-y-5" onSubmit={handleSubmit} noValidate>
