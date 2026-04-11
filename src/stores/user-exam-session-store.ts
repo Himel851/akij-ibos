@@ -64,18 +64,22 @@ export const useUserExamSessionStore = create<ExamSessionState & ExamSessionActi
       }),
 
     setRadio: (questionId, optionId) =>
-      set((s) => ({
-        ...s,
-        answers: { ...s.answers, [questionId]: { kind: "radio", optionId } },
-      })),
+      set((s) => {
+        const existing = s.answers[questionId];
+        if (existing?.kind === "radio") return s;
+        return {
+          ...s,
+          answers: { ...s.answers, [questionId]: { kind: "radio", optionId } },
+        };
+      }),
 
+    /** Add-only: once an option is checked it cannot be unchecked. */
     toggleCheckbox: (questionId, optionId) =>
       set((s) => {
         const cur = s.answers[questionId];
         const ids = cur?.kind === "checkbox" ? [...cur.optionIds] : [];
-        const i = ids.indexOf(optionId);
-        if (i >= 0) ids.splice(i, 1);
-        else ids.push(optionId);
+        if (ids.includes(optionId)) return s;
+        ids.push(optionId);
         return {
           ...s,
           answers: {

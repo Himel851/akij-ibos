@@ -145,6 +145,9 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
   const q = questions[index];
   const currentAns = q ? answers[q.id] : undefined;
   const displayName = userName || "Participant";
+  const radioLocked = q?.type === "radio" && currentAns?.kind === "radio";
+  const checkboxCheckedIds =
+    currentAns?.kind === "checkbox" ? new Set(currentAns.optionIds) : null;
 
   const handleSkip = () => {
     if (!q) return;
@@ -307,17 +310,18 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                             currentAns.optionId === opt.id,
                         )}
                         onChange={() => onSetRadio(opt.id)}
-                        className="h-4 w-4 border-zinc-400 text-primary focus:ring-primary"
+                        disabled={radioLocked}
+                        className="h-4 w-4 border-zinc-400 text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     ) : (
                       <input
                         type="checkbox"
                         checked={Boolean(
-                          currentAns?.kind === "checkbox" &&
-                            currentAns.optionIds.includes(opt.id),
+                          checkboxCheckedIds?.has(opt.id),
                         )}
                         onChange={() => onToggleCheckbox(opt.id)}
-                        className="h-4 w-4 rounded border-zinc-400 text-primary focus:ring-primary"
+                        disabled={Boolean(checkboxCheckedIds?.has(opt.id))}
+                        className="h-4 w-4 rounded border-zinc-400 text-primary focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                       />
                     )}
                     <span className="text-sm text-zinc-800">
