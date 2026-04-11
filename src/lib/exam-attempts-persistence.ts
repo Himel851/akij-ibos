@@ -1,6 +1,7 @@
 import type { ExamScoreResult } from "@/lib/exam-scoring";
 import { createSupabaseServiceClient, hasSupabaseServiceConfig } from "@/lib/supabase/service-role";
 import type { ExamAdminTableRow } from "@/types/exam-candidate";
+import type { UserOwnAttemptRow } from "@/types/exam";
 
 function isMissingExamAttemptsTable(error: { code?: string; message?: string }): boolean {
   if (error.code === "PGRST205") return true;
@@ -118,4 +119,78 @@ export async function listExamAttemptsForAdminPersisted(
     maxPoints: numOrNull(row.max_points),
     submittedAt: row.created_at,
   })) ?? [];
+}
+
+type ExamAttemptWithTitleRow = {
+  id: string;
+  exam_id: string;
+  score_percent: number | null;
+  correct_count: number;
+  wrong_count: number;
+  skipped_count: number;
+  total_points: number | string;
+  max_points: number | string;
+  created_at: string;
+  exams: { title: string | null } | { title: string | null }[] | null;
+};
+
+function examTitleFromJoin(row: ExamAttemptWithTitleRow): string {
+  const rel = row.exams;
+  if (!rel) return "—";
+  const one = Array.isArray(rel) ? rel[0] : rel;
+  const t = one?.title;
+  return typeof t === "string" && t.trim() ? t.trim() : "—";
+}
+
+/** Current user's submits, newest first. Empty if table missing or no rows. */
+export async function listExamAttemptsForUserPersisted(
+  userId: string,
+): Promise<UserOwnAttemptRow[]> {
+  if (!hasSupabaseServiceConfig()) {
+    return [];
+  }
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("exam_attempts")
+    .select(
+      `
+      id,
+      exam_id,
+      score_percent,
+      correct_count,
+      wrong_count,
+      skipped_count,
+      total_points,
+      max_points,
+      created_at,
+      exams ( title )
+    `,
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isMissingExamAttemptsTable(error)) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[exam_attempts] Table not found — run migration supabase/migrations/20260413120000_create_exam_attempts.sql",
+        );
+      }
+      return [];
+    }
+    throw error;
+  }
+
+  return ((data ?? []) as ExamAttemptWithTitleRow[]).map((row) => ({
+    id: row.id,
+    examId: row.exam_id,
+    examTitle: examTitleFromJoin(row),
+    scorePercent: row.score_percent,
+    correctCount: row.correct_count,
+    wrongCount: row.wrong_count,
+    skippedCount: row.skipped_count,
+    totalPoints: numOrNull(row.total_points),
+    maxPoints: numOrNull(row.max_points),
+    submittedAt: row.created_at,
+  }));
 }

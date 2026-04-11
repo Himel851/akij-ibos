@@ -31,3 +31,17 @@ export type UserExamListItem = {
   questionCount: number;
   negativeMarkingLabel: string;
 };
+
+/** Logged-in user's own submit history (profile / my attempts). */
+export type UserOwnAttemptRow = {
+  id: string;
+  examId: string;
+  examTitle: string;
+  scorePercent: number | null;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  totalPoints: number | null;
+  maxPoints: number | null;
+  submittedAt: string;
+};

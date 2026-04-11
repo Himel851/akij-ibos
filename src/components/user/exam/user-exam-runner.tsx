@@ -7,6 +7,7 @@ import {
   type UserAnswer,
 } from "@/lib/exam-scoring";
 import type { Exam } from "@/types/exam";
+import type { ExamQuestion, McqOption } from "@/types/question";
 import { Check, Clock, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +23,67 @@ function formatMmSs(totalSeconds: number): string {
 
 function stripPromptForDisplay(raw: string): string {
   return raw.replace(/<[^>]*>/g, "").trim() || "—";
+}
+
+function setsEqualIds(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
+const rowBase =
+  "flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors";
+
+/**
+ * Instant feedback for MCQ:
+ * - Radio: after pick, show green on correct option(s), red on wrong pick.
+ * - Checkbox: only style options the user has checked until the full set matches;
+ *   then show all correct rows green (avoids revealing other correct answers on partial select).
+ */
+function optionRowClassName(
+  q: ExamQuestion,
+  opt: McqOption,
+  currentAns: UserAnswer | undefined,
+): string {
+  if (q.type === "radio") {
+    const selectedId = currentAns?.kind === "radio" ? currentAns.optionId : null;
+    const revealed = selectedId !== null;
+    if (!revealed) {
+      return `${rowBase} border-zinc-200 bg-white hover:border-zinc-300`;
+    }
+    if (opt.isCorrect) {
+      return `${rowBase} border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/40`;
+    }
+    if (selectedId === opt.id && !opt.isCorrect) {
+      return `${rowBase} border-red-500 bg-red-50 ring-1 ring-red-500/40`;
+    }
+    return `${rowBase} border-zinc-200 bg-zinc-50/90 text-zinc-500`;
+  }
+
+  if (q.type === "checkbox") {
+    const ids = currentAns?.kind === "checkbox" ? currentAns.optionIds : [];
+    const selected = new Set(ids);
+    const revealed = ids.length > 0;
+    if (!revealed) {
+      return `${rowBase} border-zinc-200 bg-white hover:border-zinc-300`;
+    }
+    const correctSet = new Set(q.options.filter((o) => o.isCorrect).map((o) => o.id));
+    const match = setsEqualIds(selected, correctSet);
+    if (match) {
+      return opt.isCorrect
+        ? `${rowBase} border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/40`
+        : `${rowBase} border-zinc-200 bg-white`;
+    }
+    // Partial selection: colour only checked rows (do not highlight unchecked correct answers).
+    if (selected.has(opt.id)) {
+      return opt.isCorrect
+        ? `${rowBase} border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/40`
+        : `${rowBase} border-red-500 bg-red-50 ring-1 ring-red-500/40`;
+    }
+    return `${rowBase} border-zinc-200 bg-white hover:border-zinc-300`;
+  }
+
+  return `${rowBase} border-zinc-200 bg-white hover:border-zinc-300`;
 }
 
 export function UserExamRunner({ exam }: { exam: Exam }) {
@@ -291,17 +353,7 @@ export function UserExamRunner({ exam }: { exam: Exam }) {
                 q.options.map((opt) => (
                   <label
                     key={opt.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                      q.type === "radio" &&
-                      currentAns?.kind === "radio" &&
-                      currentAns.optionId === opt.id
-                        ? "border-primary bg-primary/5"
-                        : q.type === "checkbox" &&
-                            currentAns?.kind === "checkbox" &&
-                            currentAns.optionIds.includes(opt.id)
-                          ? "border-primary bg-primary/5"
-                          : "border-zinc-200 bg-white hover:border-zinc-300"
-                    }`}
+                    className={optionRowClassName(q, opt, currentAns)}
                   >
                     {q.type === "radio" ? (
                       <input

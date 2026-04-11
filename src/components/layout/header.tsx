@@ -105,14 +105,7 @@ export function Header() {
               priority
             />
           </Link>
-          {isUserDashboard ? (
-            <Link
-              href="/user"
-              className="shrink-0 text-sm font-semibold text-primary hover:text-primary-hover"
-            >
-              Dashboard
-            </Link>
-          ) : null}
+        
         </div>
         <p className="flex-1 text-center text-base font-medium text-zinc-700 sm:text-lg">
           Akij Resource
@@ -147,9 +140,19 @@ export function Header() {
               </button>
               {menuOpen ? (
                 <div
-                  className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
+                  className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
                   role="menu"
                 >
+                  {isUserDashboard ? (
+                    <Link
+                      href="/user/profile"
+                      role="menuitem"
+                      className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      My results
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     role="menuitem"
